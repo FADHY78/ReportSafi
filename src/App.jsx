@@ -120,7 +120,7 @@ function Shell() {
   } else if (path === '/features') {
     page = <Features />;
   } else if (path === '/pricing') {
-    page = <Pricing />;
+    page = <Pricing session={studentView} />;
   } else if (path === '/security') {
     page = <Security />;
   } else {

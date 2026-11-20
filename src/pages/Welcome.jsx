@@ -239,6 +239,15 @@ export default function Welcome({ session, onIdentified }) {
                 />
               </Field>
 
+              <div className="field-disclaimer" role="note">
+                <IconAlert size={16} />
+                <div>
+                  <strong>Use your real college registration number.</strong> Enter the exact number
+                  printed on your official student identity card — do not use a fake, guessed, or
+                  another student&rsquo;s registration number.
+                </div>
+              </div>
+
               <Field label="Full names" required htmlFor="names" error={errors.names}>
                 <input
                   id="names"

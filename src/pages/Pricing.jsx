@@ -1,7 +1,7 @@
 import PageIntro from '../components/PageIntro';
 import PricingSection from '../sections/Pricing';
 
-export default function Pricing() {
+export default function Pricing({ session }) {
   return (
     <>
       <PageIntro
@@ -11,7 +11,7 @@ export default function Pricing() {
         primary={{ label: 'See the catalogue', to: '/catalogue' }}
         secondary={{ label: 'Ask the research office', to: '/help' }}
       />
-      <PricingSection />
+      <PricingSection session={session} />
     </>
   );
 }

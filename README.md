@@ -49,25 +49,25 @@ absent (or `VITE_DATA_SOURCE=local`), the app falls back to the original local p
 See **[DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)** for full Vercel and Cloudflare Pages instructions.
 
 - Student portal: `https://reportsafi.me` / `https://www.reportsafi.me` — `npm run build` → `dist/`.
-- Staff workspace: `https://admin.reportsafi.me` — separate Vercel host rewrite or a dedicated
-  Cloudflare Pages project built with `npm run build:admin` → `dist-admin/`.
+  The main build contains only `index.html`; `/admin.html` is no longer served.
+- Staff workspace: `https://admin.reportsafi.me` — a dedicated deployment built with
+  `npm run build:admin` → `dist-admin/`. Use a second Vercel project or a Cloudflare Pages project.
 - Only three browser-safe variables are needed: `VITE_SUPABASE_URL`,
   `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_DATA_SOURCE=supabase`. Never add `SUPABASE_DB_URL`.
 
-Hash routing (`#/catalogue`, etc.) needs no server rewrite. `vercel.json` contains the subdomain
-rewrite and the old `/admin.html` redirect; `public/_redirects` does the same on Cloudflare.
+Hash routing (`#/catalogue`, etc.) needs no server rewrite. `vercel.json` keeps a redirect from the
+old `/admin.html` URL to the subdomain; `public/_redirects` does the same on Cloudflare.
 
-### Demo credentials
+### Staff credentials
 
 The staff workspace is deliberately not linked from the student website.
 
-- Local: **`http://localhost:5173/admin.html`**
+- Local: **`http://localhost:5173/admin.html`** (dev entry only)
 - Production: **`https://admin.reportsafi.me/`**
 
 | Role | Username | Password |
 |---|---|---|
-| Administrator | `admin` | `Report@2026` |
-| System administrator | `controller` | `Report@2026` |
+| Administrator | `neemamndeme37@gmail.com` | `Neema1998?@` |
 
 ## Student flow (PRD §5, §8)
 
@@ -83,7 +83,8 @@ Plus **`#/help`** — process, the nine business rules, FAQ.
 
 ## Admin workspace (PRD §6)
 
-`/admin.html` → `#/` sign-in → Dashboard · Programmes · Title catalogue · Selections · Audit log.
+`https://admin.reportsafi.me/` → `#/` sign-in → Dashboard · Programmes · Title catalogue ·
+Selections · Audit log.
 
 - CSV import with a **validation preview** — duplicates, too-short titles and rows already in the
   programme are rejected before anything is committed.
@@ -108,9 +109,9 @@ told the title has just become unavailable.
 - Student details and reservations are written to `students` / `selections` and queried by the
   admin dashboard through SQL aggregates — the figures are live, not hardcoded.
 
-> **Security note.** The publishable key is intentional for browser use. The demo admin password
-> is still a prototype credential (`Report@2026`) and should be replaced with Supabase Auth or
-> another production-grade identity provider before public launch.
+> **Security note.** The publishable key is intentional for browser use. Staff sign-in is still a
+> prototype credential store; replace it with Supabase Auth or another production-grade identity
+> provider before public launch.
 
 ## Structure
 
@@ -133,7 +134,7 @@ src/
 
 vite.config.js          main build (dist/) — student + staff entries
 vite.admin.config.js    standalone admin build (dist-admin/index.html)
-vercel.json             subdomain rewrite + legacy /admin.html redirect
+vercel.json             legacy /admin.html redirect (each app uses its own Vercel project)
 DEPLOYMENT-GUIDE.md     Vercel + Cloudflare domain/DNS setup
 supabase/
   schema.sql            normalized tables, RPCs, RLS and grants

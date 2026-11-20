@@ -84,17 +84,17 @@ try {
     titleTotal += titles.length;
   }
 
-  const hash = demoHash('Report@2026');
+  const hash = demoHash('Neema1998?@');
   await client.query(
     `insert into public.admins (id, username, name, role, pw_hash, status)
      select * from unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[])`,
     [
-      ['adm-1', 'adm-2'],
-      ['admin', 'controller'],
-      ['Dr. M. Kessy', 'Registrar, Research Office'],
-      ['Administrator', 'System administrator'],
-      [hash, hash],
-      ['active', 'active'],
+      ['adm-1'],
+      ['neemamndeme37@gmail.com'],
+      ['Neema'],
+      ['Administrator'],
+      [hash],
+      ['active'],
     ]
   );
 

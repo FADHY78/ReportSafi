@@ -90,7 +90,7 @@ export default function Login({ onAuthed }) {
                   className="inp mono"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin"
+                  placeholder="name@example.com"
                   autoComplete="username"
                 />
               </div>
@@ -114,14 +114,6 @@ export default function Login({ onAuthed }) {
             <Btn type="submit" variant="primary" size="lg" block disabled={busy} icon={IconShield}>
               {busy ? 'Verifying…' : 'Sign in to the workspace'}
             </Btn>
-
-            <div className="demo-hint">
-              <strong>Demo accounts</strong> — this prototype stores data in your browser only:
-              <br />
-              <code>admin</code> / <code>Report@2026</code> · Administrator
-              <br />
-              <code>controller</code> / <code>Report@2026</code> · System administrator
-            </div>
 
             <button
               type="button"

@@ -1,15 +1,15 @@
 # Deployment & domain guide
 
-This project serves two apps from one repository:
+This repository builds two separate apps:
 
 | App | Public URL | Build command | Output |
 | --- | --- | --- | --- |
 | Student portal | `https://reportsafi.me` / `https://www.reportsafi.me` | `npm run build` | `dist/` |
 | Staff workspace | `https://admin.reportsafi.me` | `npm run build:admin` | `dist-admin/` |
 
-The student app uses hash routes (`#/catalogue`, `#/help`, …), so no SPA fallback rewrite is
-needed. The admin app is a separate Vite entry (`admin.html`); the dedicated build makes it the
-root page of the admin subdomain.
+The student build contains **only `index.html`** — `/admin.html` is no longer part of the public
+site. The admin build turns `admin.html` into `dist-admin/index.html`, so it is served directly at
+the subdomain root. Both apps use hash routes, so no SPA fallback rewrite is needed.
 
 ---
 
@@ -29,39 +29,49 @@ needs the browser-safe publishable key.
 
 ---
 
-## 2. Vercel
+## 2. Vercel — two projects
 
-The committed `vercel.json` already contains the routing rules:
+Because the two apps have different build commands and outputs, use **two Vercel projects** from the
+same GitHub repository.
 
-- `reportsafi.me/admin.html` and `www.reportsafi.me/admin.html` → `301` to
-  `https://admin.reportsafi.me/`.
-- `admin.reportsafi.me/*` → internally rewritten to `/admin.html` (assets, favicon and
-  `robots.txt` are excluded so they keep loading normally).
+> `vercel.json` intentionally does **not** pin `buildCommand` / `outputDirectory`, so each project
+> uses its own dashboard settings. It only keeps the legacy `/admin.html` redirect.
 
-### One project, three domains
+### Project A — student portal
 
-1. Import `https://github.com/FADHY78/ReportSafi.git` as a Vite project.
-2. Keep the detected settings from `vercel.json` (`npm run build`, output `dist/`).
-3. Add the three environment variables above to Production, Preview and Development.
-4. Go to **Project Settings → Domains** and add:
-   - `reportsafi.me`
-   - `www.reportsafi.me`
-   - `admin.reportsafi.me`
+| Setting | Value |
+| --- | --- |
+| Framework preset | Vite (auto-detected) |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Root directory | repository root |
+| Custom domains | `reportsafi.me`, `www.reportsafi.me` |
 
-   The `has: [{ "type": "host", "value": "admin.reportsafi.me" }]` rewrite only matches when that
-   hostname is attached to the project, so this step is required.
+### Project B — staff workspace
 
-5. In your DNS provider (or Cloudflare DNS), add:
+| Setting | Value |
+| --- | --- |
+| Framework preset | Vite |
+| Build command | **`npm run build:admin`** |
+| Output directory | **`dist-admin`** |
+| Root directory | repository root |
+| Custom domain | `admin.reportsafi.me` |
 
-   | Type | Name | Value | Proxy |
-   | --- | --- | --- | --- |
-   | `A` | `reportsafi.me` | `76.76.21.21` | DNS only (grey cloud) |
-   | `CNAME` | `www` | `cname.vercel-dns.com` | DNS only (grey cloud) |
-   | `CNAME` | `admin` | `cname.vercel-dns.com` | DNS only (grey cloud) |
+`vite.admin.config.js` renames `admin.html` to `dist-admin/index.html`, so
+`https://admin.reportsafi.me/` serves the staff login directly. `/admin.html` does not exist in
+this deployment either.
 
-   If Cloudflare is your DNS provider for Vercel, leave the orange cloud **off** for these records.
+### DNS (Cloudflare as DNS provider)
 
-6. Deploy (`git push` or `npx vercel --prod`).
+Vercel will give you the exact records to add when you attach each domain. Typically:
+
+| Type | Name | Value | Proxy |
+| --- | --- | --- | --- |
+| `A` | `reportsafi.me` | `76.76.21.21` | DNS only (grey cloud) |
+| `CNAME` | `www` | `cname.vercel-dns.com` | DNS only (grey cloud) |
+| `CNAME` | `admin` | `cname.vercel-dns.com` (or the value Vercel shows) | DNS only (grey cloud) |
+
+Leave the orange cloud **off** for Vercel records.
 
 ### Verify on Vercel
 
@@ -69,19 +79,22 @@ The committed `vercel.json` already contains the routing rules:
 curl -I https://reportsafi.me/admin.html
 # HTTP/2 301 → location: https://admin.reportsafi.me/
 
+curl -s https://reportsafi.me/ | grep -i "Research Title Selection Portal"
+curl -s https://reportsafi.me/admin.html | grep -i "Staff Workspace"   # should be empty
+
 curl -s https://admin.reportsafi.me/ | grep -i "Staff Workspace"
-curl -s https://admin.reportsafi.me/ | grep -o '/assets/[^"]*\.js' | head -1
+curl -s https://admin.reportsafi.me/admin.html | grep -i "Staff Workspace"   # should be empty
 ```
 
-The last command must return a real asset path. If it returns `admin.html` markup for an asset
-request, the host rewrite is too broad — keep the `assets/` and `favicon.svg` exclusions.
+Every deployment must be **Ready** on commit `fe840d7` or later. Older deployments still serve
+`/admin.html` on the student domain and the student site on the admin subdomain.
 
 ---
 
-## 3. Cloudflare Pages
+## 3. Cloudflare Pages (alternative)
 
-Cloudflare's `_redirects` file cannot match on hostname, so the cleanest setup is **two Pages
-projects** from the same repository.
+If you prefer Pages instead of Vercel, use two Pages projects. `_redirects` cannot match on
+hostname, so a single project cannot serve two subdomains.
 
 ### Project A — student portal
 
@@ -103,9 +116,6 @@ projects** from the same repository.
 | Root directory | repository root |
 | Custom domain | `admin.reportsafi.me` |
 
-`vite.admin.config.js` builds `admin.html` and renames it to `dist-admin/index.html`, so
-`https://admin.reportsafi.me/` serves the staff workspace directly.
-
 ### Cloudflare DNS
 
 - If `reportsafi.me` is a Cloudflare zone, adding the custom domain in Pages creates the DNS
@@ -116,24 +126,11 @@ projects** from the same repository.
   | --- | --- | --- |
   | `CNAME` | `admin` | `<your-admin-pages-project>.pages.dev` |
 
-- An apex domain (`reportsafi.me`) requires the zone to be on Cloudflare.
-- Do not create the CNAME manually in the Pages dashboard first; always use **Custom domains →
+- Do not create the CNAME manually before associating the domain in Pages; use **Custom domains →
   Set up a domain** so Cloudflare issues the certificate correctly.
 
 `public/_redirects` is copied into both builds. On the student project it redirects the old
 `/admin.html` URL to the admin subdomain. On the admin project it is harmless.
-
-### Verify on Cloudflare
-
-```bash
-npm run build:admin
-# dist-admin/index.html must exist and contain "Staff Workspace"
-
-curl -I https://reportsafi.me/admin.html
-# HTTP/2 301 → location: https://admin.reportsafi.me/
-
-curl -s https://admin.reportsafi.me/ | grep -i "Staff Workspace"
-```
 
 ---
 
@@ -148,9 +145,12 @@ npm run test:rules
 
 Expected:
 
-- `dist/index.html` and `dist/admin.html` from the main build.
-- `dist-admin/index.html` from the admin build.
+- `dist/index.html` only from the main build (no `dist/admin.html`).
+- `dist-admin/index.html` from the admin build (no `dist-admin/admin.html`).
 - `npm run test:rules` still passes (it uses the offline fixture, not live data).
+
+For local development, `http://localhost:5173/admin.html` still works — Vite's dev server serves
+any HTML file at the root.
 
 ---
 
@@ -160,5 +160,5 @@ Expected:
 - For production, add an extra access layer: **Vercel Password Protection** or **Cloudflare
   Access** on `admin.reportsafi.me`.
 - Keep `SUPABASE_DB_URL` only in your local `.env.local`. Never add it to Vercel or Cloudflare.
-- Replace the demo admin password (`Report@2026`) with a real identity provider before public
-  launch.
+- Staff sign-in is a prototype credential store. Replace it with a real identity provider before
+  public launch.

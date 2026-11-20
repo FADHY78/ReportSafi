@@ -621,18 +621,10 @@ function seedDB() {
     admins: [
       {
         id: 'adm-1',
-        username: 'admin',
-        name: 'Dr. M. Kessy',
+        username: 'neemamndeme37@gmail.com',
+        name: 'Neema',
         role: 'Administrator',
-        pwHash: demoHash('Report@2026'),
-        status: 'active',
-      },
-      {
-        id: 'adm-2',
-        username: 'controller',
-        name: 'Registrar, Research Office',
-        role: 'System administrator',
-        pwHash: demoHash('Report@2026'),
+        pwHash: demoHash('Neema1998?@'),
         status: 'active',
       },
     ],

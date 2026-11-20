@@ -291,7 +291,7 @@ export async function getSelectionByRef(ref) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Admin: authentication (PRD §6, §10 — demo credentials, see login)    */
+/* Admin: authentication (PRD §6, §10 — staff credentials)              */
 /* ------------------------------------------------------------------ */
 
 export async function adminLogin(username, password) {

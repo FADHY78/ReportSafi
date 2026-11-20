@@ -6,9 +6,8 @@ import { rename } from 'node:fs/promises';
 /**
  * Dedicated build for admin.reportsafi.me.
  *
- * Vercel can rewrite the subdomain to /admin.html in the main deployment, but
- * Cloudflare Pages has no host-condition rewrites in _redirects. This config
- * gives Cloudflare its own deployment where the staff app is the root page.
+ * The main build no longer emits /admin.html. This config builds the staff
+ * entry as the root page of its own deployment (Vercel project or Pages app).
  */
 function adminRootHtml() {
   return {

@@ -102,7 +102,7 @@ ok('cross-programme selection blocked (BR-06)', wrong === 'already_selected' || 
 let badLogin = false;
 try { await api.adminLogin('admin', 'wrong-password'); } catch { badLogin = true; }
 ok('bad admin password rejected', badLogin);
-const admin = await api.adminLogin('admin', 'Report@2026');
+const admin = await api.adminLogin('neemamndeme37@gmail.com', 'Neema1998?@');
 ok('admin sign-in', admin.role === 'Administrator', admin.name);
 
 const held = await api.getSelectionForStudent(s2.student.id);

@@ -15,6 +15,11 @@
       "has": [{ "type": "host", "value": "www.reportsafi.me" }],
       "destination": "https://admin.reportsafi.me/",
       "permanent": true
+    },
+    {
+      "source": "/student.html",
+      "destination": "/",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -22,6 +27,10 @@
       "source": "/",
       "has": [{ "type": "host", "value": "admin.reportsafi.me" }],
       "destination": "/admin.html"
+    },
+    {
+      "source": "/",
+      "destination": "/student.html"
     }
   ]
 }

@@ -7,17 +7,23 @@ is needed.
 
 | URL | What is served | How |
 | --- | --- | --- |
-| `https://reportsafi.me` / `https://www.reportsafi.me` | Student portal | `dist/index.html` |
-| `https://admin.reportsafi.me/` | Staff workspace | host rewrite → internal `dist/admin.html` |
+| `https://reportsafi.me` / `https://www.reportsafi.me` | Student portal | rewrite `/` → `dist/student.html` |
+| `https://admin.reportsafi.me/` | Staff workspace | host rewrite `/` → internal `dist/admin.html` |
 
 `vercel.json` contains the whole setup:
 
-- `npm run build` → `dist/` (builds both `index.html` and `admin.html`).
+- `npm run build` → `dist/`. The build renames the student entry to `student.html` and keeps
+  `admin.html` as an internal target.
 - `/admin.html` on the two student hosts → `301` to `https://admin.reportsafi.me/`.
 - `/` on host `admin.reportsafi.me` → internally rewritten to `/admin.html`.
+- `/` on every other host → internally rewritten to `/student.html`.
+
+**Why the rename matters:** Vercel checks the filesystem *before* applying rewrites. A physical
+`index.html` at `/` would be served directly and the admin-host rule would never run. With no
+`index.html`, `/` is always handled by the two rewrites above.
 
 The address bar stays `https://admin.reportsafi.me/` — visitors never see `/admin.html`. The admin
-app uses hash routes (`#/dashboard`, `#/ selections`, …), so the browser only ever requests `/`; a
+app uses hash routes (`#/dashboard`, `#/selections`, …), so the browser only ever requests `/`; a
 single root rewrite is enough and assets keep loading normally from `/assets/`.
 
 ---
@@ -58,12 +64,12 @@ CNAME  admin  →  cname.vercel-dns.com   (or the exact target Vercel shows)
 
 ### 3. Deploy the latest commit
 
-The earlier problem was an **old deployment** still being served — its asset filenames did not
-match the current build. After pushing the rewrite rules, Vercel must build and promote a new
-deployment.
+The earlier problem was twofold: an old deployment was still being served, and a physical
+`index.html` at `/` took precedence over the host rewrite. Both are fixed in the latest commit, so
+Vercel must build and promote a fresh deployment.
 
 1. Open the project → **Deployments**.
-2. Find the deployment for commit `7ca8651` or later.
+2. Find the newest deployment (commit with the `student.html` rewrite).
 3. Click **Redeploy** or **Promote to Production**.
 4. Wait until it shows **Ready**.
 
@@ -84,6 +90,8 @@ curl -I https://reportsafi.me/admin.html
 
 curl -s https://admin.reportsafi.me/ | grep -i "Staff Workspace"
 curl -s https://www.reportsafi.me/ | grep -i "Research Title Selection Portal"
+curl -I https://www.reportsafi.me/student.html
+# HTTP/2 301 → location: /
 
 # the admin subdomain must load real JS assets, not the admin HTML for every file
 curl -s https://admin.reportsafi.me/ | grep -o '/assets/[^"]*\.js' | head -1
@@ -97,7 +105,8 @@ Expected:
 - The asset URL returns JavaScript, not HTML.
 
 If the subdomain still shows the student site, the live deployment is stale or
-`admin.reportsafi.me` is not attached to the project.
+`admin.reportsafi.me` is not attached to the project. A useful sanity check is the asset filename:
+it must match the newest deployment, not an older hash.
 
 ---
 
@@ -114,8 +123,9 @@ repository. Skip this section if you are using Vercel.
 `vite.admin.config.js` builds `admin.html` as `dist-admin/index.html`. Add the custom domain in
 Pages first, then accept the CNAME it creates (`admin → <project>.pages.dev`).
 
-`public/_redirects` redirects the old `/admin.html` URL to the admin subdomain on the student
-project.
+`public/_redirects` on the student project redirects the old `/admin.html` URL to the admin
+subdomain and maps `/` to `student.html`. The admin build overwrites `_redirects` with an empty
+comment so `index.html` is served normally there.
 
 ---
 
@@ -128,8 +138,8 @@ npm run build:admin
 npm run test:rules
 ```
 
-- `dist/` contains both `index.html` and `admin.html` (the latter is only an internal rewrite
-  target, not a public page on the student domain).
+- `dist/` contains `student.html` and `admin.html` — **no `index.html`**. Both are internal
+  rewrite targets; `/admin.html` is redirected on the student domain.
 - `dist-admin/index.html` exists for the optional Pages deployment.
 - `npm run test:rules` passes 22/22.
 - `http://localhost:5173/admin.html` still works in the Vite dev server.

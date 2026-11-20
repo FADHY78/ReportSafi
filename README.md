@@ -53,11 +53,13 @@ See **[DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)** for full Vercel and Cloudflar
 - Staff workspace: `https://admin.reportsafi.me` — a host-conditioned rewrite in `vercel.json`
   serves the internal `admin.html` at the subdomain root. `/admin.html` is redirected away from the
   student domain, so it is not a public page there.
+- The build renames the student entry to `student.html`. Vercel checks the filesystem before
+  rewrites, so leaving an `index.html` at `/` would prevent the admin-subdomain rule from running.
 - Only three browser-safe variables are needed: `VITE_SUPABASE_URL`,
   `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_DATA_SOURCE=supabase`. Never add `SUPABASE_DB_URL`.
 
-Hash routing (`#/catalogue`, etc.) needs no server rewrite. `public/_redirects` mirrors the
-`/admin.html` redirect for Cloudflare.
+Hash routing (`#/catalogue`, etc.) needs no server rewrite beyond `/`. `public/_redirects` mirrors
+the routing for Cloudflare Pages.
 
 ### Staff credentials
 
@@ -135,7 +137,7 @@ src/
 
 vite.config.js          main build (dist/) — student + staff entries
 vite.admin.config.js    optional standalone admin build (dist-admin/index.html)
-vercel.json             one Vercel project: admin subdomain rewrite + /admin.html redirect
+vercel.json             one Vercel project: host rewrite at / (student.html / admin.html)
 DEPLOYMENT-GUIDE.md     Vercel + Cloudflare domain/DNS setup
 supabase/
   schema.sql            normalized tables, RPCs, RLS and grants

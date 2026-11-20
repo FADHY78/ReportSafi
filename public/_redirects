@@ -1,3 +1,3 @@
-# Cloudflare Pages: the staff workspace now lives on its own subdomain.
-# Vercel ignores this file; the equivalent host rules are in vercel.json.
+# Cloudflare Pages (student project). Vercel ignores this file; its host rules are in vercel.json.
 /admin.html https://admin.reportsafi.me/ 301
+/* /student.html 200

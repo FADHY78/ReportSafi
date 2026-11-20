@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
-import { rename } from 'node:fs/promises';
+import { rename, writeFile } from 'node:fs/promises';
 
 /**
  * Optional dedicated build for Cloudflare Pages.
@@ -21,6 +21,9 @@ function adminRootHtml() {
       } catch (error) {
         if (error.code !== 'ENOENT') throw error;
       }
+      // The shared public/_redirects has a student-site fallback. On the admin
+      // Pages project index.html already exists, so clear it here.
+      await writeFile(`${out}_redirects`, '# Admin Pages serves index.html directly.\n');
     },
   };
 }

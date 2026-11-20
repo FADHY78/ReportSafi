@@ -1,22 +1,14 @@
 import { IconGraduation } from '../ui/Icons';
+import { useSiteContent } from '../lib/useSiteContent';
 
 /**
- * "Trusted by" strip — text marks rather than fake logo images, set in mono so it
+ * "Trusted by" strip — text marks rather than logo images, set in mono so it
  * reads like an institutional letterhead instead of a stock-photo band.
+ * The names come from the editable `site_content.institutions` row.
  */
-const INSTITUTIONS = [
-  'UDSM',
-  'DIT',
-  'TIA',
-  'MUHAS',
-  'Mzumbe',
-  'IFM',
-  'Ardhi',
-  'SAUT',
-  'DMI',
-];
-
 export default function LogoCloud() {
+  const { institutions } = useSiteContent();
+
   return (
     <section className="logo-cloud" aria-label="Institutions whose students use Report Safi">
       <div className="container">
@@ -25,7 +17,7 @@ export default function LogoCloud() {
           Students from colleges and universities across Tanzania
         </p>
         <ul className="logo-cloud-list">
-          {INSTITUTIONS.map((name) => (
+          {institutions.map((name) => (
             <li key={name} className="logo-cloud-item">
               {name}
             </li>

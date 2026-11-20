@@ -1,7 +1,10 @@
 import { Link } from '../lib/router';
 import { BrandMark, IconMail, IconClock, IconPhone } from '../ui/Icons';
+import { useSiteContent } from '../lib/useSiteContent';
 
 export default function SiteFooter() {
+  const { contact } = useSiteContent();
+
   return (
     <footer className="site-footer">
       <div className="container">
@@ -58,15 +61,15 @@ export default function SiteFooter() {
             <ul>
               <li>
                 <IconMail size={15} />
-                <a href="mailto:info@reportsafi.me">info@reportsafi.me</a>
+                <a href={`mailto:${contact.email}`}>{contact.email}</a>
               </li>
               <li>
                 <IconPhone size={15} />
-                <a href="tel:+255613328915">+255 613 328 915</a>
+                <a href={contact.phoneHref}>{contact.phone}</a>
               </li>
               <li>
                 <IconClock size={15} />
-                <span>Mon – Fri, 08:00 – 17:00</span>
+                <span>{contact.hours}</span>
               </li>
             </ul>
           </div>

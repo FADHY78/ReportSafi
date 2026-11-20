@@ -75,6 +75,11 @@ export async function getPublicStats() {
   return call('rs_public_stats');
 }
 
+/** Editable site copy stored as rows in `site_content`. */
+export async function getSiteContent() {
+  return call('rs_site_content');
+}
+
 export async function getProgrammes({ includeInactive = false } = {}) {
   return call('rs_programmes', { p_include_inactive: includeInactive });
 }

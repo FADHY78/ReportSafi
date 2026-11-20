@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:admin": "vite build --config vite.admin.config.js",
     "lint": "oxlint",
     "test:rules": "node scripts/smoke.mjs",
     "preview": "vite preview",

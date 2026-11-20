@@ -1,10 +1,12 @@
 import { BrandMark, IconCheck, IconShield, IconUsers } from '../ui/Icons';
+import { useSiteContent } from '../lib/useSiteContent';
 
 /**
  * The home hero's visual proof: an official-looking selection record that shows
  * the live completed count, the reference prefix and the one-title guarantee.
  */
 export default function SelectionRecord({ completed }) {
+  const { meta } = useSiteContent();
   const count = completed == null ? '—' : Number(completed).toLocaleString('en-GB');
 
   return (
@@ -22,8 +24,8 @@ export default function SelectionRecord({ completed }) {
 
       <div className="record-ref">
         <span className="record-label">Selection record</span>
-        <strong className="record-code">RS / TS</strong>
-        <span className="record-year mono">Academic year 2026 / 2027</span>
+        <strong className="record-code">{meta.refPrefix}</strong>
+        <span className="record-year mono">Academic year {meta.academicYear}</span>
       </div>
 
       <div className="record-metrics">

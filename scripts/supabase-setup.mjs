@@ -16,6 +16,7 @@ if (!databaseUrl) {
 const reset = process.argv.includes('--reset');
 const { BASE_PROGRAMMES, baseTitles } = await import('../src/lib/db.js');
 const { demoHash } = await import('../src/lib/utils.js');
+const { DEFAULT_SITE_CONTENT } = await import('../src/lib/content.js');
 const schema = await readFile(new URL('../supabase/schema.sql', import.meta.url), 'utf8');
 
 const client = new pg.Client({
@@ -95,6 +96,14 @@ try {
       [hash, hash],
       ['active', 'active'],
     ]
+  );
+
+  const contentKeys = Object.keys(DEFAULT_SITE_CONTENT);
+  await client.query(
+    `insert into public.site_content (key, data)
+     select * from unnest($1::text[], $2::jsonb[])
+     on conflict (key) do update set data = excluded.data, updated_at = now()`,
+    [contentKeys, contentKeys.map((k) => JSON.stringify(DEFAULT_SITE_CONTENT[k]))]
   );
 
   await client.query('update public.counters set value = 0 where name = $1', ['ref']);

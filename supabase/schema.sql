@@ -29,6 +29,7 @@ drop table if exists public.audit_log cascade;
 drop table if exists public.admins cascade;
 drop table if exists public.counters cascade;
 drop table if exists public.portal_meta cascade;
+drop table if exists public.site_content cascade;
 
 /* ------------------------------------------------------------------ */
 /* Tables                                                              */
@@ -133,6 +134,13 @@ create table public.portal_meta (
 insert into public.portal_meta(id, version) values ('main', 1)
 on conflict (id) do nothing;
 
+-- Editable site copy (pricing, institutions, contact, rules, FAQ, academic year).
+create table public.site_content (
+  key text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
 alter table public.programmes enable row level security;
 alter table public.titles enable row level security;
 alter table public.students enable row level security;
@@ -141,10 +149,11 @@ alter table public.audit_log enable row level security;
 alter table public.admins enable row level security;
 alter table public.counters enable row level security;
 alter table public.portal_meta enable row level security;
+alter table public.site_content enable row level security;
 
 -- No direct table access: the browser only calls the SECURITY DEFINER functions below.
 revoke all on public.programmes, public.titles, public.students, public.selections,
-  public.audit_log, public.admins, public.counters, public.portal_meta
+  public.audit_log, public.admins, public.counters, public.portal_meta, public.site_content
 from anon, authenticated;
 
 /* ------------------------------------------------------------------ */
@@ -318,6 +327,10 @@ begin
   );
 end;
 $$;
+
+create or replace function public.rs_site_content()
+returns jsonb language sql security definer set search_path = public, pg_temp
+as $$ select coalesce(jsonb_object_agg(key, data), '{}'::jsonb) from site_content $$;
 
 create or replace function public.rs_programmes(p_include_inactive boolean default false)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp

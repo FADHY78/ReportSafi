@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRoute, navigate } from './lib/router';
 import { goSection } from './lib/scroll';
 import { ToastProvider, useToast } from './lib/toast';
+import SiteContentProvider from './lib/siteContent';
 import { getSelectionForStudent, subscribe } from './lib/api';
 
 import SiteHeader from './components/SiteHeader';
@@ -154,7 +155,9 @@ function Shell() {
 export default function App() {
   return (
     <ToastProvider>
-      <Shell />
+      <SiteContentProvider>
+        <Shell />
+      </SiteContentProvider>
     </ToastProvider>
   );
 }

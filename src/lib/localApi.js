@@ -10,8 +10,14 @@
 import { loadDB, saveDB, withLock, allTitles, titlesOf } from './db.js';
 import { normReg, normPhone, demoHash, pad, parseCSV } from './utils.js';
 import { ApiError } from './errors.js';
+import { DEFAULT_SITE_CONTENT } from './content.js';
 
 export { subscribe } from './db.js';
+
+export async function getSiteContent() {
+  await roundTrip();
+  return DEFAULT_SITE_CONTENT;
+}
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const roundTrip = () => wait(120 + Math.random() * 200); // feels like a real request

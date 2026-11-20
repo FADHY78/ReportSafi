@@ -21,6 +21,7 @@ const backend = DATA_SOURCE === 'supabase' ? remote : local;
 export { ApiError };
 export const subscribe = backend.subscribe;
 export const getPublicStats = backend.getPublicStats;
+export const getSiteContent = backend.getSiteContent;
 export const getProgrammes = backend.getProgrammes;
 export const getCatalogue = backend.getCatalogue;
 export const identify = backend.identify;

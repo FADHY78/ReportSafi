@@ -169,7 +169,7 @@ export default function Titles({ admin }) {
   const runImport = async () => {
     setImporting(true);
     try {
-      const res = await commitImport({ programmeId: importProg, valid: preview.valid, admin });
+      const res = await commitImport({ programmeId: importProg, valid: preview.valid, actor: admin });
       notify(`${res.imported} titles imported.`, 'success');
       setImportOpen(false);
       setCsvText('');

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { navigate } from '../lib/router';
 import { getProgrammes, getPublicStats, getSelectionByRef, identify, ApiError } from '../lib/api';
 import { useToast } from '../lib/toast';
@@ -50,6 +50,81 @@ const NEEDS = [
     text: 'You may only browse and reserve titles belonging to your own programme.',
   },
 ];
+
+function AnimatedStat({ value, label }) {
+  const hostRef = useRef(null);
+  const shownRef = useRef(0);
+  const [visible, setVisible] = useState(false);
+  const [display, setDisplay] = useState(null);
+
+  useEffect(() => {
+    const el = hostRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setVisible(true);
+      return undefined;
+    }
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.2 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (value === null || value === undefined) return undefined;
+    const target = Number(value);
+    if (!Number.isFinite(target)) return undefined;
+    if (!visible) return undefined;
+
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced || target === 0) {
+      shownRef.current = target;
+      setDisplay(target);
+      return undefined;
+    }
+
+    const from = shownRef.current || 0;
+    const duration = target >= 1000 ? 1200 : target >= 30 ? 850 : 600;
+    let rafId = 0;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(from + (target - from) * eased);
+      shownRef.current = current;
+      setDisplay(current);
+      if (progress < 1) {
+        rafId = window.requestAnimationFrame(tick);
+      } else {
+        shownRef.current = target;
+        setDisplay(target);
+      }
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [value, visible]);
+
+  return (
+    <div className="stat" ref={hostRef}>
+      <div className="stat-value">
+        {value === null || value === undefined
+          ? '—'
+          : Number(display ?? 0).toLocaleString('en-GB')}
+      </div>
+      <div className="stat-label">{label}</div>
+    </div>
+  );
+}
 
 export default function Welcome({ session, onIdentified }) {
   const notify = useToast();
@@ -145,15 +220,6 @@ export default function Welcome({ session, onIdentified }) {
     }
   };
 
-  const stat = (value, label) => (
-    <div className="stat">
-      <div className="stat-value">
-        {value === null ? '—' : Number(value).toLocaleString('en-GB')}
-      </div>
-      <div className="stat-label">{label}</div>
-    </div>
-  );
-
   return (
     <>
       {/* ---------------------------------------------------------- hero */}
@@ -193,10 +259,10 @@ export default function Welcome({ session, onIdentified }) {
       {/* --------------------------------------------------- stat strip */}
       <div className="container">
         <div className="stat-strip">
-          {stat(stats?.titles, 'Titles in catalogue')}
-          {stat(stats?.available, 'Available right now')}
-          {stat(stats?.programmes, 'Programmes open')}
-          {stat(stats?.today, 'Selections today')}
+          <AnimatedStat value={stats?.titles ?? null} label="Titles in catalogue" />
+          <AnimatedStat value={stats?.available ?? null} label="Available right now" />
+          <AnimatedStat value={stats?.programmes ?? null} label="Programmes open" />
+          <AnimatedStat value={stats?.today ?? null} label="Selections today" />
         </div>
       </div>
 
@@ -251,11 +317,11 @@ export default function Welcome({ session, onIdentified }) {
             <form className="ref-lookup-card" onSubmit={openByRef} noValidate>
               <div className="ref-lookup-head">
                 <span className="eyebrow">Already reserved?</span>
-                <h3>Use your reference number to edit or change title</h3>
+                <h3>Use your reference number to edit supervisor info, details, or title</h3>
                 <p className="small muted">
                   Enter the reference number you received after reserving (e.g.{' '}
-                  <span className="mono">RS-TS-2026-00001</span>) to update your details or select
-                  another available title.
+                  <span className="mono">RS-TS-2026-00001</span>) to edit your supervisor info,
+                  update student details, or select another available title.
                 </p>
               </div>
               <div className="ref-lookup-row">
@@ -301,14 +367,14 @@ export default function Welcome({ session, onIdentified }) {
                 required
                 htmlFor="regNo"
                 error={errors.regNo}
-                hint="Example: BAF/2024/01234"
+                hint="Example: 03.6773.01.01.2022"
               >
                 <input
                   id="regNo"
                   className="inp mono"
                   value={form.regNo}
                   onChange={set('regNo')}
-                  placeholder="BAF/2024/01234"
+                  placeholder="03.6773.01.01.2022"
                   autoComplete="off"
                   spellCheck="false"
                 />

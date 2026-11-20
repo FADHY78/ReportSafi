@@ -157,11 +157,12 @@ export async function updateSelectionDetails({ ref, names, phone, supervisorName
   });
 }
 
-export async function changeSelectionTitle({ ref, newTitleId, reason = '' }) {
+export async function changeSelectionTitle({ ref, newTitleId, supervisorName = '', reason = '' }) {
   return call('rs_change_selection_title', {
     p_payload: {
       ref: String(ref || '').trim().toUpperCase(),
       newTitleId,
+      supervisorName: String(supervisorName || '').trim(),
       reason: String(reason || '').trim(),
     },
   });

@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "db:setup": "node --env-file=.env.local scripts/supabase-setup.mjs",
     "db:migrate": "node --env-file=.env.local scripts/supabase-migrate.mjs",
+    "db:refresh-titles": "node --env-file=.env.local scripts/supabase-refresh-titles.mjs",
     "db:reset": "node --env-file=.env.local scripts/supabase-setup.mjs --reset"
   },
   "dependencies": {

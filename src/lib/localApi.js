@@ -365,9 +365,10 @@ export async function updateSelectionDetails({ ref, names, phone, supervisorName
   });
 }
 
-export async function changeSelectionTitle({ ref, newTitleId, reason = '' }) {
+export async function changeSelectionTitle({ ref, newTitleId, supervisorName = '', reason = '' }) {
   await roundTrip();
   const cleanRef = String(ref || '').trim().toUpperCase();
+  const cleanSupervisor = String(supervisorName || '').replace(/\s+/g, ' ').trim();
   const cleanReason = String(reason || '').replace(/\s+/g, ' ').trim() || 'Student changed title using reference number';
 
   if (!cleanRef) throw new ApiError('Reference number is required to change your title.', 'validation');
@@ -395,6 +396,12 @@ export async function changeSelectionTitle({ ref, newTitleId, reason = '' }) {
       throw new ApiError('This title has just been taken by another student.', 'unavailable');
 
     const now = new Date().toISOString();
+    const supervisorChanged = Boolean(cleanSupervisor && student && cleanSupervisor !== (student.supervisorName || ''));
+    if (supervisorChanged) {
+      student.supervisorName = cleanSupervisor;
+      student.updatedAt = now;
+    }
+
     const before = `${oldTitle?.code || '—'} — ${oldTitle?.text || '—'}`;
     const after = `${newTitle.code} — ${newTitle.text}`;
 
@@ -409,7 +416,9 @@ export async function changeSelectionTitle({ ref, newTitleId, reason = '' }) {
       {
         at: now,
         type: 'title_change',
-        summary: `Changed title from ${oldTitle?.code || '—'} to ${newTitle.code}`,
+        summary: `Changed title from ${oldTitle?.code || '—'} to ${newTitle.code}${
+          supervisorChanged ? ` (Supervisor: ${cleanSupervisor})` : ''
+        }`,
         before,
         after,
         reason: cleanReason,

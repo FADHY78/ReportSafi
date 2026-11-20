@@ -348,14 +348,14 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
               required
               htmlFor="order-reg"
               error={errors.regNo}
-              hint="Example: BAF/2024/01234"
+              hint="Example: 03.6773.01.01.2022"
             >
               <input
                 id="order-reg"
                 className="inp mono"
                 value={form.regNo}
                 onChange={setField('regNo')}
-                placeholder="BAF/2024/01234"
+                placeholder="03.6773.01.01.2022"
                 autoComplete="off"
                 spellCheck="false"
               />

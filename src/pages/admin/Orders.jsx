@@ -159,7 +159,7 @@ export default function Orders({ admin }) {
 
   return (
     <>
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+      <div className="kpi-grid kpi-grid-4">
         <Kpi label="Total orders" value={counts.total} tone="navy" icon={IconShoppingBag} />
         <Kpi label="Pending review" value={counts.pending} tone="gold" icon={IconAlert} />
         <Kpi label="In progress" value={counts.in_progress} icon={IconClock} />

@@ -19,6 +19,7 @@ export default function Confirm({ session, onSyncSession }) {
 
   const [title, setTitle] = useState(null);
   const [currentSelection, setCurrentSelection] = useState(null);
+  const [supervisorName, setSupervisorName] = useState(session?.student?.supervisorName || '');
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -44,13 +45,18 @@ export default function Confirm({ session, onSyncSession }) {
         if (t && targetProgId && t.programmeId !== targetProgId) setTitle(null);
         else setTitle(t);
         setCurrentSelection(sel);
+        if (sel?.student?.supervisorName) {
+          setSupervisorName(sel.student.supervisorName);
+        } else if (student?.supervisorName) {
+          setSupervisorName(student.supervisorName);
+        }
         setLoading(false);
       })
       .catch(() => alive && setLoading(false));
     return () => {
       alive = false;
     };
-  }, [titleId, editRef, student?.programmeId]);
+  }, [titleId, editRef, student?.programmeId, student?.supervisorName]);
 
   const confirm = async () => {
     if (!title || busy) return;
@@ -61,6 +67,7 @@ export default function Confirm({ session, onSyncSession }) {
         const updated = await changeSelectionTitle({
           ref: editRef,
           newTitleId: title.id,
+          supervisorName,
           reason,
         });
         if (updated?.student && updated?.programme && onSyncSession) {
@@ -186,7 +193,20 @@ export default function Confirm({ session, onSyncSession }) {
               </div>
 
               {isEditMode && (
-                <div style={{ marginTop: 18 }}>
+                <div className="form-grid-2" style={{ marginTop: 18 }}>
+                  <Field
+                    label="Supervisor name"
+                    htmlFor="change-sup"
+                    hint="Edit your supervisor info if it has changed"
+                  >
+                    <input
+                      id="change-sup"
+                      className="inp"
+                      value={supervisorName}
+                      onChange={(e) => setSupervisorName(e.target.value)}
+                      placeholder="Dr. Asha Mnyamzi"
+                    />
+                  </Field>
                   <Field
                     label="Reason for changing title (optional)"
                     htmlFor="change-reason"

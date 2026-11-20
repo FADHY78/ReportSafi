@@ -774,6 +774,7 @@ as $$
 declare
   v_ref text := upper(btrim(coalesce(p_payload->>'ref', '')));
   v_new_title_id text := coalesce(p_payload->>'newTitleId', '');
+  v_supervisor text := rs_clean(p_payload->>'supervisorName');
   v_reason text := coalesce(nullif(rs_clean(p_payload->>'reason'), ''), 'Student changed title using reference number');
   v_sel selections%rowtype;
   v_student students%rowtype;
@@ -806,10 +807,16 @@ begin
     perform rs_fail('unavailable', 'This title has just been taken by another student.');
   end if;
 
+  if v_supervisor <> '' and v_supervisor is distinct from coalesce(v_student.supervisor_name, '') then
+    update students set supervisor_name = v_supervisor, updated_at = now() where id = v_student.id;
+  end if;
+
   v_entry := jsonb_build_object(
     'at', rs_now(),
     'type', 'title_change',
-    'summary', 'Changed title from ' || coalesce(v_old_title.code, '—') || ' to ' || v_new_title.code,
+    'summary', 'Changed title from ' || coalesce(v_old_title.code, '—') || ' to ' || v_new_title.code ||
+      case when v_supervisor <> '' and v_supervisor is distinct from coalesce(v_student.supervisor_name, '')
+           then ' (Supervisor: ' || v_supervisor || ')' else '' end,
     'before', coalesce(v_old_title.code, '—') || ' — ' || coalesce(v_old_title.text, '—'),
     'after', v_new_title.code || ' — ' || v_new_title.text,
     'reason', v_reason

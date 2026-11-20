@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { navigate, useRoute } from '../lib/router';
 import { getSelectionByRef, updateSelectionDetails, ApiError } from '../lib/api';
 import { useToast } from '../lib/toast';
-import { Btn, Field, Modal, SkeletonRows, Notice, StatusTag } from '../ui/primitives';
+import { Btn, Field, SkeletonRows, Notice, StatusTag } from '../ui/primitives';
 import {
   IconCheck,
   IconCopy,
@@ -15,6 +15,7 @@ import {
   IconRefresh,
   IconAlert,
   IconHistory,
+  IconUserCheck,
 } from '../ui/Icons';
 import { fmtDateTime, phoneDisplay } from '../lib/utils';
 
@@ -27,10 +28,20 @@ export default function Reference({ onSyncSession }) {
   const [loading, setLoading] = useState(Boolean(ref));
   const [lookupInput, setLookupInput] = useState(ref);
 
-  const [editOpen, setEditOpen] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
   const [editForm, setEditForm] = useState({ names: '', phone: '', supervisorName: '', reason: '' });
   const [editErrors, setEditErrors] = useState({});
+
+  const syncFormFromRecord = (r) => {
+    if (!r) return;
+    setEditForm({
+      names: r.student?.names || '',
+      phone: r.student?.phone || '',
+      supervisorName: r.student?.supervisorName || '',
+      reason: '',
+    });
+    setEditErrors({});
+  };
 
   const loadRecord = useCallback(
     async (targetRef) => {
@@ -43,6 +54,7 @@ export default function Reference({ onSyncSession }) {
       try {
         const r = await getSelectionByRef(targetRef);
         setRecord(r);
+        syncFormFromRecord(r);
         if (r?.student && r?.programme && onSyncSession) {
           onSyncSession({ student: r.student, programme: r.programme });
         }
@@ -67,18 +79,6 @@ export default function Reference({ onSyncSession }) {
     } catch {
       notify('Copy not available — write the number down instead.', 'error');
     }
-  };
-
-  const openEditDetails = () => {
-    if (!record) return;
-    setEditForm({
-      names: record.student?.names || '',
-      phone: record.student?.phone || '',
-      supervisorName: record.student?.supervisorName || '',
-      reason: '',
-    });
-    setEditErrors({});
-    setEditOpen(true);
   };
 
   const saveEditDetails = async (e) => {
@@ -106,11 +106,11 @@ export default function Reference({ onSyncSession }) {
         reason: editForm.reason,
       });
       setRecord(updated);
+      syncFormFromRecord(updated);
       if (updated?.student && updated?.programme && onSyncSession) {
         onSyncSession({ student: updated.student, programme: updated.programme });
       }
-      setEditOpen(false);
-      notify('Your details have been updated and recorded.', 'success');
+      notify('Supervisor & student details updated and saved.', 'success');
     } catch (err) {
       notify(err instanceof ApiError ? err.message : 'Could not update your details.', 'error');
     } finally {
@@ -166,11 +166,15 @@ export default function Reference({ onSyncSession }) {
                   number on your confirmation and try again.
                 </>
               ) : (
-                'Enter your reservation reference number below to view your confirmation, edit your details, or select another title.'
+                'Enter your reservation reference number below to view your confirmation, edit your supervisor and student details, or select another title.'
               )}
             </p>
 
-            <form className="ref-lookup-row" style={{ maxWidth: 460, margin: '0 auto 20px' }} onSubmit={handleLookupSubmit}>
+            <form
+              className="ref-lookup-row"
+              style={{ maxWidth: 460, margin: '0 auto 20px' }}
+              onSubmit={handleLookupSubmit}
+            >
               <input
                 className="inp mono"
                 value={lookupInput}
@@ -207,8 +211,8 @@ export default function Reference({ onSyncSession }) {
         <h1>{isEdited ? 'Your reservation is updated' : 'Your title is reserved'}</h1>
         <p>
           The portal committed your selection and marked the title unavailable for everyone else.
-          Keep the reference number below — you can use it anytime to edit your details or select
-          another available title.
+          Keep the reference number below — you can use it anytime to edit your supervisor info,
+          update student details, or select another available title.
         </p>
 
         <div className="ref-card">
@@ -252,7 +256,9 @@ export default function Reference({ onSyncSession }) {
             </div>
             <div className="detail-row">
               <span className="k">Supervisor name</span>
-              <span className="v">{student?.supervisorName || '—'}</span>
+              <span className="v">
+                {student?.supervisorName || <span className="muted">Not set — add below</span>}
+              </span>
             </div>
             <div className="detail-row">
               <span className="k">Programme</span>
@@ -310,12 +316,88 @@ export default function Reference({ onSyncSession }) {
         </div>
 
         {record.status === 'active' ? (
-          <Notice tone="info" icon={IconClock}>
-            <strong>Need to make changes?</strong> Use your reference number{' '}
-            <span className="mono">{record.ref}</span> below to edit your student details or select
-            another available title. Every change is saved to the database and visible to your
-            supervisor and the Research Office.
-          </Notice>
+          <form className="panel ref-edit-panel no-print" onSubmit={saveEditDetails} noValidate>
+            <div className="panel-head">
+              <span className="panel-title">
+                <IconUserCheck size={17} /> Edit supervisor &amp; student info
+              </span>
+              <span className="mono small muted">{record.ref}</span>
+            </div>
+            <div className="panel-body">
+              <p className="small muted" style={{ marginBottom: 16 }}>
+                Update your supervisor name, full names, or active phone number using your reference
+                number. All edits are saved to the database and recorded in your edit history.
+              </p>
+
+              <Field
+                label="Supervisor name"
+                required
+                htmlFor="ed-sup"
+                error={editErrors.supervisorName}
+                hint="Example: Dr. Asha Mnyamzi"
+              >
+                <input
+                  id="ed-sup"
+                  className="inp"
+                  value={editForm.supervisorName}
+                  onChange={(e) => {
+                    setEditForm((f) => ({ ...f, supervisorName: e.target.value }));
+                    setEditErrors((er) => ({ ...er, supervisorName: '' }));
+                  }}
+                  placeholder="Dr. Asha Mnyamzi"
+                />
+              </Field>
+
+              <div className="form-grid-2">
+                <Field label="Full names" required htmlFor="ed-names" error={editErrors.names}>
+                  <input
+                    id="ed-names"
+                    className="inp"
+                    value={editForm.names}
+                    onChange={(e) => {
+                      setEditForm((f) => ({ ...f, names: e.target.value }));
+                      setEditErrors((er) => ({ ...er, names: '' }));
+                    }}
+                  />
+                </Field>
+                <Field label="Active phone" required htmlFor="ed-phone" error={editErrors.phone}>
+                  <input
+                    id="ed-phone"
+                    className="inp mono"
+                    value={editForm.phone}
+                    onChange={(e) => {
+                      setEditForm((f) => ({ ...f, phone: e.target.value }));
+                      setEditErrors((er) => ({ ...er, phone: '' }));
+                    }}
+                    inputMode="tel"
+                  />
+                </Field>
+              </div>
+
+              <Field
+                label="Reason for update (optional)"
+                htmlFor="ed-reason"
+                hint="Briefly note what changed (e.g. assigned new supervisor)"
+              >
+                <input
+                  id="ed-reason"
+                  className="inp"
+                  value={editForm.reason}
+                  onChange={(e) => setEditForm((f) => ({ ...f, reason: e.target.value }))}
+                  placeholder="e.g. Updated assigned supervisor"
+                />
+              </Field>
+
+              <div className="ref-edit-actions">
+                <Btn type="submit" variant="gold" icon={IconPencil} disabled={editBusy}>
+                  {editBusy ? 'Saving changes…' : 'Save supervisor & details'}
+                </Btn>
+                <Btn type="button" variant="outline" icon={IconRefresh} onClick={goChangeTitle}>
+                  Select another title
+                </Btn>
+              </div>
+            </div>
+          </form>
         ) : (
           <Notice tone="warn" icon={IconAlert}>
             <strong>This reservation was released.</strong> Reason: {record.releaseReason || '—'}.
@@ -323,103 +405,26 @@ export default function Reference({ onSyncSession }) {
           </Notice>
         )}
 
+        <Notice tone="info" icon={IconClock}>
+          <strong>Tracked in the database.</strong> Every update to your supervisor info, student
+          details, or selected title is recorded against reference{' '}
+          <span className="mono">{record.ref}</span> for your supervisor and the Research Office.
+        </Notice>
+
         <div className="success-actions" style={{ marginTop: 26 }}>
-          {record.status === 'active' && (
-            <>
-              <Btn variant="gold" icon={IconRefresh} onClick={goChangeTitle}>
-                Select another title
-              </Btn>
-              <Btn variant="outline" icon={IconPencil} onClick={openEditDetails}>
-                Edit student details
-              </Btn>
-            </>
-          )}
           <Btn variant="primary" icon={IconPrinter} onClick={() => window.print()}>
             Print confirmation
           </Btn>
+          {record.status === 'active' && (
+            <Btn variant="outline" icon={IconRefresh} onClick={goChangeTitle}>
+              Select another title
+            </Btn>
+          )}
           <Btn variant="ghost" icon={IconArrowRight} onClick={() => navigate('/')}>
             Finish
           </Btn>
         </div>
       </div>
-
-      <Modal
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        title={`Edit details · ${record.ref}`}
-        sub="Changes are saved to the database and logged in your reservation edit history."
-        foot={
-          <>
-            <Btn variant="outline" onClick={() => setEditOpen(false)}>
-              Cancel
-            </Btn>
-            <Btn type="submit" form="edit-student-ref-form" variant="gold" disabled={editBusy}>
-              {editBusy ? 'Saving…' : 'Save changes'}
-            </Btn>
-          </>
-        }
-      >
-        <form id="edit-student-ref-form" onSubmit={saveEditDetails} noValidate>
-          <Field label="Reference number" htmlFor="ed-ref">
-            <input id="ed-ref" className="inp mono" value={record.ref} disabled />
-          </Field>
-          <Field label="Full names" required htmlFor="ed-names" error={editErrors.names}>
-            <input
-              id="ed-names"
-              className="inp"
-              value={editForm.names}
-              onChange={(e) => {
-                setEditForm((f) => ({ ...f, names: e.target.value }));
-                setEditErrors((er) => ({ ...er, names: '' }));
-              }}
-            />
-          </Field>
-          <div className="form-grid-2">
-            <Field label="Active phone" required htmlFor="ed-phone" error={editErrors.phone}>
-              <input
-                id="ed-phone"
-                className="inp mono"
-                value={editForm.phone}
-                onChange={(e) => {
-                  setEditForm((f) => ({ ...f, phone: e.target.value }));
-                  setEditErrors((er) => ({ ...er, phone: '' }));
-                }}
-                inputMode="tel"
-              />
-            </Field>
-            <Field
-              label="Supervisor name"
-              required
-              htmlFor="ed-sup"
-              error={editErrors.supervisorName}
-            >
-              <input
-                id="ed-sup"
-                className="inp"
-                value={editForm.supervisorName}
-                onChange={(e) => {
-                  setEditForm((f) => ({ ...f, supervisorName: e.target.value }));
-                  setEditErrors((er) => ({ ...er, supervisorName: '' }));
-                }}
-                placeholder="Dr. Asha Mnyamzi"
-              />
-            </Field>
-          </div>
-          <Field
-            label="Reason for edit (optional)"
-            htmlFor="ed-reason"
-            hint="Briefly note why you updated your details"
-          >
-            <input
-              id="ed-reason"
-              className="inp"
-              value={editForm.reason}
-              onChange={(e) => setEditForm((f) => ({ ...f, reason: e.target.value }))}
-              placeholder="e.g. Updated supervisor assignment"
-            />
-          </Field>
-        </form>
-      </Modal>
     </div>
   );
 }

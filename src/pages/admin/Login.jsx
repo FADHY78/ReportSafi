@@ -111,7 +111,7 @@ export default function Login({ onAuthed }) {
               </div>
             </Field>
 
-            <Btn type="submit" variant="primary" size="lg" block disabled={busy} icon={IconShield}>
+            <Btn type="submit" variant="primary" size="lg" className="btn-block" disabled={busy} icon={IconShield}>
               {busy ? 'Verifying…' : 'Sign in to the workspace'}
             </Btn>
 

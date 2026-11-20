@@ -44,6 +44,28 @@ absent (or `VITE_DATA_SOURCE=local`), the app falls back to the original local p
 
 `.env.local` is ignored by Git. Never commit the database password or use a `VITE_` prefix for it.
 
+### Deploy to Vercel
+
+The repo is ready for Vercel — `vercel.json` uses the Vite preset, runs `npm run build` and serves
+`dist/`. The student app is at `/` and the staff workspace is at `/admin.html`. Routing is hash-based
+(`#/catalogue`, etc.), so no rewrite rules are needed.
+
+1. In Vercel, **Add New → Project → Import** `https://github.com/FADHY78/ReportSafi.git`.
+2. Accept the detected Vite settings (or let `vercel.json` supply them).
+3. Add these **three** environment variables (Production, Preview and Development):
+
+   | Name | Value |
+   |---|---|
+   | `VITE_SUPABASE_URL` | `https://cgxabxcralfulzredfjj.supabase.co` |
+   | `VITE_SUPABASE_PUBLISHABLE_KEY` | your `sb_publishable_…` key |
+   | `VITE_DATA_SOURCE` | `supabase` |
+
+4. **Do not** add `SUPABASE_DB_URL` or any database password to Vercel. The schema is set up once
+   from your machine with `npm run db:setup`; Vercel only needs the browser-safe publishable key.
+5. Click **Deploy**. (Run `npm run db:setup` locally first if the Supabase project is new.)
+
+Alternatively, with the Vercel CLI installed: `npx vercel login` then `npx vercel --prod`.
+
 ### Demo credentials
 
 The staff workspace is a separate entry point at **`http://localhost:5173/admin.html`**.

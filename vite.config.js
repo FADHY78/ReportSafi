@@ -7,7 +7,12 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
-      input: fileURLToPath(new URL('./index.html', import.meta.url)),
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        // Internal target for the admin.reportsafi.me host rewrite. It is not
+        // linked from the student site and is redirected on the main domain.
+        admin: fileURLToPath(new URL('./admin.html', import.meta.url)),
+      },
     },
   },
 })

@@ -48,15 +48,16 @@ absent (or `VITE_DATA_SOURCE=local`), the app falls back to the original local p
 
 See **[DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)** for full Vercel and Cloudflare Pages instructions.
 
-- Student portal: `https://reportsafi.me` / `https://www.reportsafi.me` — `npm run build` → `dist/`.
-  The main build contains only `index.html`; `/admin.html` is no longer served.
-- Staff workspace: `https://admin.reportsafi.me` — a dedicated deployment built with
-  `npm run build:admin` → `dist-admin/`. Use a second Vercel project or a Cloudflare Pages project.
+- **One Vercel project** serves both apps: `npm run build` → `dist/`.
+- Student portal: `https://reportsafi.me` / `https://www.reportsafi.me`.
+- Staff workspace: `https://admin.reportsafi.me` — a host-conditioned rewrite in `vercel.json`
+  serves the internal `admin.html` at the subdomain root. `/admin.html` is redirected away from the
+  student domain, so it is not a public page there.
 - Only three browser-safe variables are needed: `VITE_SUPABASE_URL`,
   `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_DATA_SOURCE=supabase`. Never add `SUPABASE_DB_URL`.
 
-Hash routing (`#/catalogue`, etc.) needs no server rewrite. `vercel.json` keeps a redirect from the
-old `/admin.html` URL to the subdomain; `public/_redirects` does the same on Cloudflare.
+Hash routing (`#/catalogue`, etc.) needs no server rewrite. `public/_redirects` mirrors the
+`/admin.html` redirect for Cloudflare.
 
 ### Staff credentials
 
@@ -133,8 +134,8 @@ src/
   pages/admin/          Login, AdminShell, Dashboard, Programmes, Titles, Selections, Audit
 
 vite.config.js          main build (dist/) — student + staff entries
-vite.admin.config.js    standalone admin build (dist-admin/index.html)
-vercel.json             legacy /admin.html redirect (each app uses its own Vercel project)
+vite.admin.config.js    optional standalone admin build (dist-admin/index.html)
+vercel.json             one Vercel project: admin subdomain rewrite + /admin.html redirect
 DEPLOYMENT-GUIDE.md     Vercel + Cloudflare domain/DNS setup
 supabase/
   schema.sql            normalized tables, RPCs, RLS and grants

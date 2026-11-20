@@ -4,10 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { rename } from 'node:fs/promises';
 
 /**
- * Dedicated build for admin.reportsafi.me.
+ * Optional dedicated build for Cloudflare Pages.
  *
- * The main build no longer emits /admin.html. This config builds the staff
- * entry as the root page of its own deployment (Vercel project or Pages app).
+ * Vercel serves the staff app from the main deployment via a host rewrite to
+ * /admin.html. Cloudflare _redirects cannot match on hostname, so Pages needs
+ * this build that makes admin.html the root page of a separate Pages project.
  */
 function adminRootHtml() {
   return {

@@ -1,11 +1,27 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "redirects": [
     {
       "source": "/admin.html",
+      "has": [{ "type": "host", "value": "reportsafi.me" }],
       "destination": "https://admin.reportsafi.me/",
       "permanent": true
+    },
+    {
+      "source": "/admin.html",
+      "has": [{ "type": "host", "value": "www.reportsafi.me" }],
+      "destination": "https://admin.reportsafi.me/",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "admin.reportsafi.me" }],
+      "destination": "/admin.html"
     }
   ]
 }

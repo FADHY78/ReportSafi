@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { navigate } from '../lib/router';
-import { getProgrammes, getPublicStats, identify, ApiError } from '../lib/api';
+import { getProgrammes, getPublicStats, getSelectionByRef, identify, ApiError } from '../lib/api';
 import { useToast } from '../lib/toast';
 import { Btn, Field, Notice } from '../ui/primitives';
 import {
@@ -8,11 +8,13 @@ import {
   IconCheck,
   IconShield,
   IconUsers,
+  IconUserCheck,
   IconHash,
   IconPhone,
   IconGraduation,
   IconAlert,
   IconFileText,
+  IconPencil,
 } from '../ui/Icons';
 
 import SelectionRecord from '../components/SelectionRecord';
@@ -38,6 +40,11 @@ const NEEDS = [
     text: 'A number you can still receive SMS on. It is the only way we can reach you.',
   },
   {
+    icon: IconUserCheck,
+    title: 'Supervisor name',
+    text: 'Your assigned research or project supervisor’s full name.',
+  },
+  {
     icon: IconGraduation,
     title: 'Programme / course',
     text: 'You may only browse and reserve titles belonging to your own programme.',
@@ -50,8 +57,17 @@ export default function Welcome({ session, onIdentified }) {
   const [stats, setStats] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ regNo: '', names: '', phone: '', programmeId: '' });
+  const [form, setForm] = useState({
+    regNo: '',
+    names: '',
+    phone: '',
+    supervisorName: '',
+    programmeId: '',
+  });
   const [errors, setErrors] = useState({});
+  const [refLookup, setRefLookup] = useState('');
+  const [refBusy, setRefBusy] = useState(false);
+  const [refError, setRefError] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -73,9 +89,36 @@ export default function Welcome({ session, onIdentified }) {
     if (form.names.trim().split(/\s+/).filter(Boolean).length < 2)
       next.names = 'Enter your full names.';
     if (!form.phone.trim()) next.phone = 'Enter your active phone number.';
+    if (form.supervisorName.trim().length < 2) next.supervisorName = 'Enter your supervisor name.';
     if (!form.programmeId) next.programmeId = 'Choose your programme.';
     setErrors(next);
     return Object.keys(next).length === 0;
+  };
+
+  const openByRef = async (e) => {
+    e.preventDefault();
+    const clean = refLookup.trim().toUpperCase();
+    setRefError('');
+    if (!clean) {
+      setRefError('Enter your reference number (e.g. RS-TS-2026-00001).');
+      return;
+    }
+    setRefBusy(true);
+    try {
+      const record = await getSelectionByRef(clean);
+      if (!record) {
+        setRefError(`No selection found for ${clean}. Check the reference number and try again.`);
+        return;
+      }
+      if (record.student && record.programme) {
+        onIdentified({ student: record.student, programme: record.programme });
+      }
+      navigate(`/reference?ref=${encodeURIComponent(record.ref)}`);
+    } catch (err) {
+      setRefError(err instanceof ApiError ? err.message : 'Could not look up that reference number.');
+    } finally {
+      setRefBusy(false);
+    }
   };
 
   const submit = async (e) => {
@@ -167,7 +210,7 @@ export default function Welcome({ session, onIdentified }) {
             <div className="section-head" style={{ marginBottom: 8 }}>
               <h2>Before you enter the catalogue</h2>
               <p>
-                The Research Office needs to know who is reserving each title. Have these four
+                The Research Office needs to know who is reserving each title. Have these five
                 details ready — the form takes under a minute.
               </p>
             </div>
@@ -205,13 +248,45 @@ export default function Welcome({ session, onIdentified }) {
                 </div>
               </div>
             )}
+            <form className="ref-lookup-card" onSubmit={openByRef} noValidate>
+              <div className="ref-lookup-head">
+                <span className="eyebrow">Already reserved?</span>
+                <h3>Use your reference number to edit or change title</h3>
+                <p className="small muted">
+                  Enter the reference number you received after reserving (e.g.{' '}
+                  <span className="mono">RS-TS-2026-00001</span>) to update your details or select
+                  another available title.
+                </p>
+              </div>
+              <div className="ref-lookup-row">
+                <input
+                  className="inp mono"
+                  value={refLookup}
+                  onChange={(e) => {
+                    setRefLookup(e.target.value);
+                    setRefError('');
+                  }}
+                  placeholder="RS-TS-2026-00001"
+                  aria-label="Selection reference number"
+                  spellCheck="false"
+                />
+                <Btn type="submit" variant="outline" icon={IconPencil} disabled={refBusy}>
+                  {refBusy ? 'Checking…' : 'Open / Edit'}
+                </Btn>
+              </div>
+              {refError && (
+                <span className="field-error" style={{ marginTop: 8 }}>
+                  <IconAlert size={14} /> {refError}
+                </span>
+              )}
+            </form>
           </div>
 
           <form className="form-panel" onSubmit={submit} noValidate>
             <div className="form-panel-head">
               <span className="eyebrow">Student details</span>
               <h2>Identify yourself</h2>
-              <p>Registration number · Full names · Active phone · Programme</p>
+              <p>Registration number · Full names · Supervisor · Active phone · Programme</p>
             </div>
 
             <div className="form-panel-body">
@@ -256,6 +331,23 @@ export default function Welcome({ session, onIdentified }) {
                   onChange={set('names')}
                   placeholder="Neema Baraka Mushi"
                   autoComplete="name"
+                />
+              </Field>
+
+              <Field
+                label="Supervisor name"
+                required
+                htmlFor="supervisorName"
+                error={errors.supervisorName}
+                hint="Example: Dr. Asha Mnyamzi"
+              >
+                <input
+                  id="supervisorName"
+                  className="inp"
+                  value={form.supervisorName}
+                  onChange={set('supervisorName')}
+                  placeholder="Dr. Asha Mnyamzi"
+                  autoComplete="off"
                 />
               </Field>
 
@@ -319,8 +411,9 @@ export default function Welcome({ session, onIdentified }) {
 
               <p className="form-footnote">
                 <IconShield size={14} />
-                Submitted once. After that you hold exactly one title, and any correction must be
-                made by an authorised administrator with a recorded reason.
+                Submitted once. Keep your reference number after reserving — you can use it anytime
+                to update your details or select another available title, and every change is
+                recorded in the portal.
               </p>
             </div>
           </form>

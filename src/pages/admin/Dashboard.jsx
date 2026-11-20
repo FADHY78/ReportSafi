@@ -5,15 +5,17 @@ import { useToast } from '../../lib/toast';
 import { Btn, StatusTag, SkeletonRows, Empty } from '../../ui/primitives';
 import {
   IconFolder,
-  IconFileText,
   IconCheckCircle,
   IconAlert,
   IconUsers,
+  IconUserCheck,
+  IconShoppingBag,
   IconClock,
   IconHistory,
   IconArrowRight,
   IconRefresh,
   IconUpload,
+  IconPencil,
 } from '../../ui/Icons';
 import { fmtDateTime, relativeTime } from '../../lib/utils';
 
@@ -93,6 +95,30 @@ export default function Dashboard() {
       </div>
 
       <div className="quick-grid">
+        <button className="quick-card" onClick={() => navigate('/orders')}>
+          <span className="quick-icon"><IconShoppingBag size={17} /></span>
+          <span>
+            <strong>Manage package orders</strong>
+            <span>{stats.pendingOrders || 0} pending · track proposal &amp; report orders</span>
+          </span>
+          <IconArrowRight size={15} />
+        </button>
+        <button className="quick-card" onClick={() => navigate('/selections')}>
+          <span className="quick-icon"><IconUsers size={17} /></span>
+          <span>
+            <strong>Review selections</strong>
+            <span>{stats.editedSelections || 0} edited · inspect &amp; release titles</span>
+          </span>
+          <IconArrowRight size={15} />
+        </button>
+        <button className="quick-card" onClick={() => navigate('/students')}>
+          <span className="quick-icon"><IconUserCheck size={17} /></span>
+          <span>
+            <strong>Students &amp; supervisors</strong>
+            <span>{stats.students} records · edit student &amp; supervisor details</span>
+          </span>
+          <IconArrowRight size={15} />
+        </button>
         <button className="quick-card" onClick={() => navigate('/titles')}>
           <span className="quick-icon"><IconUpload size={17} /></span>
           <span>
@@ -101,39 +127,15 @@ export default function Dashboard() {
           </span>
           <IconArrowRight size={15} />
         </button>
-        <button className="quick-card" onClick={() => navigate('/selections')}>
-          <span className="quick-icon"><IconUsers size={17} /></span>
-          <span>
-            <strong>Review selections</strong>
-            <span>Release a title with a recorded reason</span>
-          </span>
-          <IconArrowRight size={15} />
-        </button>
-        <button className="quick-card" onClick={() => navigate('/audit')}>
-          <span className="quick-icon"><IconHistory size={17} /></span>
-          <span>
-            <strong>Read the audit log</strong>
-            <span>Actor, time, reason and before / after</span>
-          </span>
-          <IconArrowRight size={15} />
-        </button>
-        <button className="quick-card" onClick={() => navigate('/programmes')}>
-          <span className="quick-icon"><IconFolder size={17} /></span>
-          <span>
-            <strong>Programme structure</strong>
-            <span>Codes, awards, departments, status</span>
-          </span>
-          <IconArrowRight size={15} />
-        </button>
       </div>
 
       <div className="kpi-grid">
-        <Kpi label="Programmes" value={stats.programmes} note={`${stats.activeProgrammes} open for selection`} tone="navy" icon={IconFolder} />
-        <Kpi label="Titles" value={stats.titles} note="Active in catalogue" icon={IconFileText} />
-        <Kpi label="Available" value={stats.available} note="Free to reserve" tone="green" icon={IconCheckCircle} />
-        <Kpi label="Unavailable" value={stats.unavailable} note="Reserved or withdrawn" tone="red" icon={IconAlert} />
-        <Kpi label="Active selections" value={stats.selections} note={`${stats.students} student records`} tone="gold" icon={IconUsers} />
-        <Kpi label="Selected today" value={stats.today} note={`${stats.released} released historically`} icon={IconClock} />
+        <Kpi label="Package orders" value={stats.orders || 0} note={`${stats.pendingOrders || 0} pending review`} tone="gold" icon={IconShoppingBag} />
+        <Kpi label="Active selections" value={stats.selections} note={`${stats.students} student records`} tone="navy" icon={IconUsers} />
+        <Kpi label="Edited selections" value={stats.editedSelections || 0} note="Changed via reference number" icon={IconPencil} />
+        <Kpi label="Available titles" value={stats.available} note={`of ${stats.titles.toLocaleString('en-GB')} active`} tone="green" icon={IconCheckCircle} />
+        <Kpi label="Reserved titles" value={stats.unavailable} note={`${stats.released} released historically`} tone="red" icon={IconAlert} />
+        <Kpi label="Selected today" value={stats.today} note={`${stats.activeProgrammes} of ${stats.programmes} programmes open`} icon={IconClock} />
       </div>
 
       <div className="split-2">
@@ -179,8 +181,43 @@ export default function Dashboard() {
           <section className="panel">
             <div className="panel-head">
               <span className="panel-title">
+                <IconShoppingBag size={17} /> Latest package orders
+              </span>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/orders')}>
+                View all
+              </button>
+            </div>
+            <div className="panel-body" style={{ paddingTop: 6 }}>
+              {!(stats.recentOrders || []).length ? (
+                <Empty title="No orders yet" text="Package orders placed from the Pricing page appear here." />
+              ) : (
+                <div className="feed">
+                  {stats.recentOrders.map((o) => (
+                    <div className="feed-item" key={o.id}>
+                      <span className="feed-dot" style={{ background: 'var(--gold)' }} />
+                      <div style={{ flex: 1 }}>
+                        <strong>{o.names}</strong>
+                        <p>
+                          <span className="mono">{o.ref}</span> · {o.packageName} ({o.price})
+                        </p>
+                        <time>{relativeTime(o.createdAt)}</time>
+                      </div>
+                      <StatusTag status={o.status} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <span className="panel-title">
                 <IconUsers size={17} /> Latest selections
               </span>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/selections')}>
+                View all
+              </button>
             </div>
             <div className="panel-body" style={{ paddingTop: 6 }}>
               {stats.recent.length === 0 ? (
@@ -196,9 +233,13 @@ export default function Dashboard() {
                           {r.title?.code} — {r.title?.text?.slice(0, 68)}
                           {r.title?.text?.length > 68 ? '…' : ''}
                         </p>
-                        <time>{relativeTime(r.selectedAt)}</time>
+                        <time>
+                          {r.editedAt ? `Edited ${relativeTime(r.editedAt)}` : relativeTime(r.selectedAt)}
+                        </time>
                       </div>
-                      <StatusTag status={r.status === 'active' ? 'active' : 'released'} />
+                      <StatusTag
+                        status={(r.editCount || 0) > 0 && r.status === 'active' ? 'edited' : r.status === 'active' ? 'active' : 'released'}
+                      />
                     </div>
                   ))}
                 </div>

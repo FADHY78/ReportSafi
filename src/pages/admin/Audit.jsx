@@ -8,7 +8,13 @@ import { fmtDateTime, toCSV, downloadFile } from '../../lib/utils';
 const ACTIONS = [
   { value: 'all', label: 'All actions' },
   { value: 'selection.create', label: 'Selections made' },
+  { value: 'selection.change_title', label: 'Titles changed (student)' },
+  { value: 'selection.edit_details', label: 'Details edited (student)' },
   { value: 'selection.release', label: 'Selections released' },
+  { value: 'order.create', label: 'Orders placed' },
+  { value: 'order.update', label: 'Orders updated' },
+  { value: 'student.update', label: 'Students updated' },
+  { value: 'content.update', label: 'Site settings updated' },
   { value: 'title.import', label: 'Catalogue imports' },
   { value: 'title.create', label: 'Titles added' },
   { value: 'title.update', label: 'Titles edited' },

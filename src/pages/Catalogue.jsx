@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, navigate } from '../lib/router';
+import { Link, navigate, useRoute } from '../lib/router';
 import { getCatalogue, getProgrammes, ApiError } from '../lib/api';
 import { useToast } from '../lib/toast';
 import { Btn, Pager, Empty, SkeletonRows, StatusTag, Notice } from '../ui/primitives';
@@ -34,6 +34,9 @@ function Stat({ label, value, tone, hint }) {
 
 export default function Catalogue({ session, onResetSession }) {
   const notify = useToast();
+  const { query } = useRoute();
+  const editRef = (query?.get('editRef') || '').trim().toUpperCase();
+
   const [programmes, setProgrammes] = useState([]);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +50,7 @@ export default function Catalogue({ session, onResetSession }) {
 
   const programmeId = session?.student?.programmeId;
   const held = session?.existingSelection;
+  const isEditMode = Boolean(editRef && held && held.ref?.toUpperCase() === editRef);
   const programme = programmes.find((p) => p.id === programmeId);
   const person = session?.student;
   const refreshing = loading && Boolean(data);
@@ -108,6 +112,12 @@ export default function Catalogue({ session, onResetSession }) {
                 <span className="mono">{person?.regNo}</span>
                 <span>·</span>
                 <span className="mono">{person?.phone}</span>
+                {person?.supervisorName && (
+                  <>
+                    <span>·</span>
+                    <span>Sup: {person.supervisorName}</span>
+                  </>
+                )}
                 <span>·</span>
                 <span>{programme ? `${programme.code} — ${programme.name}` : 'Loading programme…'}</span>
               </div>
@@ -135,10 +145,12 @@ export default function Catalogue({ session, onResetSession }) {
               <span>Catalogue</span>
             </nav>
             <span className="eyebrow">Step 02 · Title selection</span>
-            <h1>Find your research title</h1>
+            <h1>{isEditMode ? 'Select a new research title' : 'Find your research title'}</h1>
             <p className="lead">
-              {held
-                ? 'You already hold a title, so selection is locked. You can still browse the catalogue below.'
+              {isEditMode
+                ? `Changing title for reference ${held.ref}. Pick any available title below to replace your current selection.`
+                : held
+                ? 'You already hold a title. Use your reference number below if you want to edit your details or select another available title.'
                 : 'Search and compare approved titles. Selecting a title does not reserve it — the reservation is confirmed on the next screen.'}
             </p>
             <div className="cat-programme-chip">
@@ -169,12 +181,48 @@ export default function Catalogue({ session, onResetSession }) {
           </div>
         </header>
 
-        {held && (
-          <Notice tone="warn" icon={IconLock}>
-            <strong>You hold {held.ref}.</strong> One student may hold only one active title. To take
-            a different topic, an authorised release is required first.
+        {isEditMode ? (
+          <Notice tone="info" icon={IconRefresh}>
+            <div style={{ flex: 1 }}>
+              <strong>Changing title using reference {held.ref}.</strong> Current title:{' '}
+              <span className="mono">{held.title?.code}</span> — {held.title?.text}. Choose an
+              available title below to replace it; your old title will return to the available pool.
+              <div style={{ marginTop: 10 }}>
+                <Btn
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/reference?ref=${encodeURIComponent(held.ref)}`)}
+                >
+                  Back to confirmation
+                </Btn>
+              </div>
+            </div>
           </Notice>
-        )}
+        ) : held ? (
+          <Notice tone="warn" icon={IconLock}>
+            <div style={{ flex: 1 }}>
+              <strong>You currently hold {held.ref}.</strong> One student holds one active title at
+              a time. Want to switch to another available title or edit your details?
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+                <Btn
+                  variant="gold"
+                  size="sm"
+                  icon={IconRefresh}
+                  onClick={() => navigate(`/catalogue?editRef=${encodeURIComponent(held.ref)}`)}
+                >
+                  Change title with {held.ref}
+                </Btn>
+                <Btn
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/reference?ref=${encodeURIComponent(held.ref)}`)}
+                >
+                  View / Edit details
+                </Btn>
+              </div>
+            </div>
+          </Notice>
+        ) : null}
 
         {error && (
           <Notice tone="error" icon={IconAlert}>
@@ -312,18 +360,28 @@ export default function Catalogue({ session, onResetSession }) {
                     </div>
 
                     <div className="cat-row-action">
-                      {title.available && !held ? (
+                      {title.available && (!held || isEditMode) ? (
                         <Btn
-                          variant="primary"
+                          variant={isEditMode ? 'gold' : 'primary'}
                           size="sm"
                           icon={IconArrowRight}
-                          onClick={() => navigate(`/confirm?title=${encodeURIComponent(title.id)}`)}
+                          onClick={() =>
+                            navigate(
+                              isEditMode
+                                ? `/confirm?title=${encodeURIComponent(title.id)}&editRef=${encodeURIComponent(held.ref)}`
+                                : `/confirm?title=${encodeURIComponent(title.id)}`
+                            )
+                          }
                         >
-                          Review &amp; select
+                          {isEditMode ? 'Select as new title' : 'Review & select'}
                         </Btn>
+                      ) : held && held.titleId === title.id ? (
+                        <span className="cat-row-note">
+                          <IconCheck size={14} /> Your current title
+                        </span>
                       ) : title.available && held ? (
                         <span className="cat-row-note">
-                          <IconLock size={14} /> Selection locked
+                          <IconLock size={14} /> Use {held.ref} to switch
                         </span>
                       ) : (
                         <span className="cat-row-note">

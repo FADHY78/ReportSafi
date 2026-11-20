@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { navigate } from '../lib/router';
-import { getSelectionByRef } from '../lib/api';
+import { useCallback, useEffect, useState } from 'react';
+import { navigate, useRoute } from '../lib/router';
+import { getSelectionByRef, updateSelectionDetails, ApiError } from '../lib/api';
 import { useToast } from '../lib/toast';
-import { Btn, SkeletonRows, Notice, StatusTag } from '../ui/primitives';
+import { Btn, Field, Modal, SkeletonRows, Notice, StatusTag } from '../ui/primitives';
 import {
   IconCheck,
   IconCopy,
@@ -11,27 +11,54 @@ import {
   IconFileText,
   IconClock,
   IconInfo,
+  IconPencil,
+  IconRefresh,
+  IconAlert,
+  IconHistory,
 } from '../ui/Icons';
 import { fmtDateTime, phoneDisplay } from '../lib/utils';
 
-export default function Reference() {
+export default function Reference({ onSyncSession }) {
   const notify = useToast();
-  const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
-  const ref = params.get('ref') || '';
+  const { query } = useRoute();
+  const ref = (query?.get('ref') || '').trim();
 
   const [record, setRecord] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(ref));
+  const [lookupInput, setLookupInput] = useState(ref);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editForm, setEditForm] = useState({ names: '', phone: '', supervisorName: '', reason: '' });
+  const [editErrors, setEditErrors] = useState({});
+
+  const loadRecord = useCallback(
+    async (targetRef) => {
+      if (!targetRef) {
+        setRecord(null);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const r = await getSelectionByRef(targetRef);
+        setRecord(r);
+        if (r?.student && r?.programme && onSyncSession) {
+          onSyncSession({ student: r.student, programme: r.programme });
+        }
+      } catch {
+        setRecord(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onSyncSession]
+  );
 
   useEffect(() => {
-    let alive = true;
-    getSelectionByRef(ref)
-      .then((r) => alive && setRecord(r))
-      .catch(() => alive && setRecord(null))
-      .finally(() => alive && setLoading(false));
-    return () => {
-      alive = false;
-    };
-  }, [ref]);
+    setLookupInput(ref);
+    loadRecord(ref);
+  }, [ref, loadRecord]);
 
   const copy = async () => {
     try {
@@ -40,6 +67,73 @@ export default function Reference() {
     } catch {
       notify('Copy not available — write the number down instead.', 'error');
     }
+  };
+
+  const openEditDetails = () => {
+    if (!record) return;
+    setEditForm({
+      names: record.student?.names || '',
+      phone: record.student?.phone || '',
+      supervisorName: record.student?.supervisorName || '',
+      reason: '',
+    });
+    setEditErrors({});
+    setEditOpen(true);
+  };
+
+  const saveEditDetails = async (e) => {
+    e.preventDefault();
+    const errs = {};
+    if (editForm.names.trim().split(/\s+/).filter(Boolean).length < 2) {
+      errs.names = 'Enter your full names (at least two parts).';
+    }
+    if (!editForm.phone.trim()) {
+      errs.phone = 'Enter your active phone number.';
+    }
+    if (editForm.supervisorName.trim().length < 2) {
+      errs.supervisorName = 'Enter your supervisor name.';
+    }
+    setEditErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    setEditBusy(true);
+    try {
+      const updated = await updateSelectionDetails({
+        ref: record.ref,
+        names: editForm.names,
+        phone: editForm.phone,
+        supervisorName: editForm.supervisorName,
+        reason: editForm.reason,
+      });
+      setRecord(updated);
+      if (updated?.student && updated?.programme && onSyncSession) {
+        onSyncSession({ student: updated.student, programme: updated.programme });
+      }
+      setEditOpen(false);
+      notify('Your details have been updated and recorded.', 'success');
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : 'Could not update your details.', 'error');
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const goChangeTitle = () => {
+    if (!record) return;
+    if (record.student && record.programme && onSyncSession) {
+      onSyncSession({ student: record.student, programme: record.programme });
+    }
+    navigate(`/catalogue?editRef=${encodeURIComponent(record.ref)}`);
+  };
+
+  const handleLookupSubmit = (e) => {
+    e.preventDefault();
+    const clean = lookupInput.trim().toUpperCase();
+    if (!clean) {
+      notify('Enter your reference number first.', 'error');
+      return;
+    }
+    navigate(`/reference?ref=${encodeURIComponent(clean)}`);
   };
 
   if (loading) {
@@ -57,18 +151,41 @@ export default function Reference() {
   if (!record) {
     return (
       <div className="container" style={{ paddingTop: 56 }}>
-        <div className="panel">
-          <div className="panel-body center" style={{ padding: '52px 28px' }}>
+        <div className="panel" style={{ maxWidth: 620, margin: '0 auto' }}>
+          <div className="panel-body center" style={{ padding: '48px 28px' }}>
             <div className="empty-icon">
               <IconInfo size={24} />
             </div>
-            <h2 style={{ marginBottom: 10 }}>Reference not found</h2>
+            <h2 style={{ marginBottom: 10 }}>
+              {ref ? 'Reference not found' : 'Open your selection by reference number'}
+            </h2>
             <p className="muted" style={{ marginBottom: 22 }}>
-              No selection matches <span className="mono">{ref || '—'}</span>. Check the reference
-              number on your confirmation, or ask the Research Office.
+              {ref ? (
+                <>
+                  No selection matches <span className="mono">{ref}</span>. Check the reference
+                  number on your confirmation and try again.
+                </>
+              ) : (
+                'Enter your reservation reference number below to view your confirmation, edit your details, or select another title.'
+              )}
             </p>
-            <Btn variant="primary" icon={IconArrowRight} onClick={() => navigate('/catalogue')}>
-              Back to the catalogue
+
+            <form className="ref-lookup-row" style={{ maxWidth: 460, margin: '0 auto 20px' }} onSubmit={handleLookupSubmit}>
+              <input
+                className="inp mono"
+                value={lookupInput}
+                onChange={(e) => setLookupInput(e.target.value)}
+                placeholder="RS-TS-2026-00001"
+                aria-label="Selection reference number"
+                spellCheck="false"
+              />
+              <Btn type="submit" variant="gold" icon={IconArrowRight}>
+                Find
+              </Btn>
+            </form>
+
+            <Btn variant="outline" icon={IconFileText} onClick={() => navigate('/')}>
+              Back to home
             </Btn>
           </div>
         </div>
@@ -77,6 +194,8 @@ export default function Reference() {
   }
 
   const { title, student, programme } = record;
+  const editHistory = Array.isArray(record.editHistory) ? record.editHistory : [];
+  const isEdited = (record.editCount || 0) > 0;
 
   return (
     <div className="container">
@@ -85,18 +204,24 @@ export default function Reference() {
           <IconCheck size={36} strokeWidth={2.6} />
         </div>
         <span className="eyebrow">Step 04 · Selection confirmed</span>
-        <h1>Your title is reserved</h1>
+        <h1>{isEdited ? 'Your reservation is updated' : 'Your title is reserved'}</h1>
         <p>
           The portal committed your selection and marked the title unavailable for everyone else.
-          Keep the reference number below — it is your proof of reservation.
+          Keep the reference number below — you can use it anytime to edit your details or select
+          another available title.
         </p>
 
         <div className="ref-card">
           <div className="ref-label">Selection reference</div>
           <div className="ref-code">{record.ref}</div>
-          <button className="btn btn-outline btn-sm" onClick={copy}>
-            <IconCopy size={15} /> Copy reference
-          </button>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button className="btn btn-outline btn-sm" onClick={copy}>
+              <IconCopy size={15} /> Copy reference
+            </button>
+            {isEdited && (
+              <StatusTag status="edited" label={`Edited (${record.editCount})`} />
+            )}
+          </div>
 
           <div className="detail-list">
             <div className="detail-row">
@@ -109,6 +234,14 @@ export default function Reference() {
               <span className="k">Title code</span>
               <span className="v mono">{title?.code || '—'}</span>
             </div>
+            {record.previousTitleText && (
+              <div className="detail-row">
+                <span className="k">Previous title</span>
+                <span className="v small muted" style={{ maxWidth: '62%' }}>
+                  <span className="mono">{record.previousTitleCode}</span> — {record.previousTitleText}
+                </span>
+              </div>
+            )}
             <div className="detail-row">
               <span className="k">Student</span>
               <span className="v">{student?.names || '—'}</span>
@@ -116,6 +249,10 @@ export default function Reference() {
             <div className="detail-row">
               <span className="k">Registration number</span>
               <span className="v mono">{student?.regNo || '—'}</span>
+            </div>
+            <div className="detail-row">
+              <span className="k">Supervisor name</span>
+              <span className="v">{student?.supervisorName || '—'}</span>
             </div>
             <div className="detail-row">
               <span className="k">Programme</span>
@@ -131,6 +268,12 @@ export default function Reference() {
               <span className="k">Reserved on</span>
               <span className="v mono">{fmtDateTime(record.selectedAt)}</span>
             </div>
+            {record.editedAt && (
+              <div className="detail-row">
+                <span className="k">Last edited</span>
+                <span className="v mono">{fmtDateTime(record.editedAt)}</span>
+              </div>
+            )}
             <div className="detail-row">
               <span className="k">Status</span>
               <span className="v">
@@ -138,26 +281,145 @@ export default function Reference() {
               </span>
             </div>
           </div>
+
+          {editHistory.length > 0 && (
+            <div className="edit-history-box no-print">
+              <div className="edit-history-head">
+                <IconHistory size={15} />
+                <strong>Edit history ({editHistory.length})</strong>
+              </div>
+              <ul className="edit-history-list">
+                {editHistory.map((item, idx) => (
+                  <li key={`${item.at}-${idx}`}>
+                    <div className="edit-history-top">
+                      <strong>{item.summary}</strong>
+                      <span className="mono small muted">{fmtDateTime(item.at)}</span>
+                    </div>
+                    <div className="small muted">
+                      <span style={{ textDecoration: 'line-through', opacity: 0.75 }}>{item.before}</span>{' '}
+                      → <span>{item.after}</span>
+                    </div>
+                    {item.reason && item.reason !== '—' && (
+                      <div className="small muted">Note: {item.reason}</div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
-        <Notice tone="info" icon={IconClock}>
-          <strong>What happens next.</strong> Your supervisor and the Research Office see this
-          record. Students cannot change a selection themselves — to release or reassign it, an
-          authorised administrator records a reason, and the change appears in the audit log.
-        </Notice>
+        {record.status === 'active' ? (
+          <Notice tone="info" icon={IconClock}>
+            <strong>Need to make changes?</strong> Use your reference number{' '}
+            <span className="mono">{record.ref}</span> below to edit your student details or select
+            another available title. Every change is saved to the database and visible to your
+            supervisor and the Research Office.
+          </Notice>
+        ) : (
+          <Notice tone="warn" icon={IconAlert}>
+            <strong>This reservation was released.</strong> Reason: {record.releaseReason || '—'}.
+            You can identify yourself again on the home page to select a new title.
+          </Notice>
+        )}
 
         <div className="success-actions" style={{ marginTop: 26 }}>
+          {record.status === 'active' && (
+            <>
+              <Btn variant="gold" icon={IconRefresh} onClick={goChangeTitle}>
+                Select another title
+              </Btn>
+              <Btn variant="outline" icon={IconPencil} onClick={openEditDetails}>
+                Edit student details
+              </Btn>
+            </>
+          )}
           <Btn variant="primary" icon={IconPrinter} onClick={() => window.print()}>
-            Print this confirmation
-          </Btn>
-          <Btn variant="outline" icon={IconFileText} onClick={() => navigate('/catalogue')}>
-            Browse the catalogue
+            Print confirmation
           </Btn>
           <Btn variant="ghost" icon={IconArrowRight} onClick={() => navigate('/')}>
             Finish
           </Btn>
         </div>
       </div>
+
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title={`Edit details · ${record.ref}`}
+        sub="Changes are saved to the database and logged in your reservation edit history."
+        foot={
+          <>
+            <Btn variant="outline" onClick={() => setEditOpen(false)}>
+              Cancel
+            </Btn>
+            <Btn type="submit" form="edit-student-ref-form" variant="gold" disabled={editBusy}>
+              {editBusy ? 'Saving…' : 'Save changes'}
+            </Btn>
+          </>
+        }
+      >
+        <form id="edit-student-ref-form" onSubmit={saveEditDetails} noValidate>
+          <Field label="Reference number" htmlFor="ed-ref">
+            <input id="ed-ref" className="inp mono" value={record.ref} disabled />
+          </Field>
+          <Field label="Full names" required htmlFor="ed-names" error={editErrors.names}>
+            <input
+              id="ed-names"
+              className="inp"
+              value={editForm.names}
+              onChange={(e) => {
+                setEditForm((f) => ({ ...f, names: e.target.value }));
+                setEditErrors((er) => ({ ...er, names: '' }));
+              }}
+            />
+          </Field>
+          <div className="form-grid-2">
+            <Field label="Active phone" required htmlFor="ed-phone" error={editErrors.phone}>
+              <input
+                id="ed-phone"
+                className="inp mono"
+                value={editForm.phone}
+                onChange={(e) => {
+                  setEditForm((f) => ({ ...f, phone: e.target.value }));
+                  setEditErrors((er) => ({ ...er, phone: '' }));
+                }}
+                inputMode="tel"
+              />
+            </Field>
+            <Field
+              label="Supervisor name"
+              required
+              htmlFor="ed-sup"
+              error={editErrors.supervisorName}
+            >
+              <input
+                id="ed-sup"
+                className="inp"
+                value={editForm.supervisorName}
+                onChange={(e) => {
+                  setEditForm((f) => ({ ...f, supervisorName: e.target.value }));
+                  setEditErrors((er) => ({ ...er, supervisorName: '' }));
+                }}
+                placeholder="Dr. Asha Mnyamzi"
+              />
+            </Field>
+          </div>
+          <Field
+            label="Reason for edit (optional)"
+            htmlFor="ed-reason"
+            hint="Briefly note why you updated your details"
+          >
+            <input
+              id="ed-reason"
+              className="inp"
+              value={editForm.reason}
+              onChange={(e) => setEditForm((f) => ({ ...f, reason: e.target.value }))}
+              placeholder="e.g. Updated supervisor assignment"
+            />
+          </Field>
+        </form>
+      </Modal>
     </div>
   );
 }

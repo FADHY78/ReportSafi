@@ -7,7 +7,7 @@
  * bypass BR-01…BR-09 or read admin credentials.
  */
 import { createClient } from '@supabase/supabase-js';
-import { demoHash, parseCSV } from './utils.js';
+import { demoHash, normPhone, normReg, parseCSV } from './utils.js';
 import { ApiError } from './errors.js';
 
 // Vite injects import.meta.env; the global fallback lets Node smoke harnesses exercise this backend.
@@ -102,13 +102,18 @@ export async function getCatalogue({
   });
 }
 
-export async function identify({ regNo, names, phone, programmeId }) {
+export async function identify({ regNo, names, phone, supervisorName = '', programmeId }) {
+  const cleanPhone = normPhone(phone);
+  if (!cleanPhone) {
+    throw new ApiError('Enter a valid Tanzanian mobile number (e.g. 0712 345 678).', 'validation');
+  }
   return call('rs_identify', {
     p_payload: {
       studentId: `stu-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      regNo,
+      regNo: normReg(regNo),
       names,
-      phone,
+      phone: cleanPhone,
+      supervisorName: String(supervisorName || '').trim(),
       programmeId,
     },
   });
@@ -134,6 +139,56 @@ export async function reserve({ studentId, titleId }) {
 
 export async function getSelectionByRef(ref) {
   return call('rs_selection_by_ref', { p_ref: ref });
+}
+
+export async function updateSelectionDetails({ ref, names, phone, supervisorName = '', reason = '' }) {
+  const cleanPhone = normPhone(phone);
+  if (!cleanPhone) {
+    throw new ApiError('Enter a valid Tanzanian mobile number (e.g. 0712 345 678).', 'validation');
+  }
+  return call('rs_update_selection_details', {
+    p_payload: {
+      ref: String(ref || '').trim().toUpperCase(),
+      names,
+      phone: cleanPhone,
+      supervisorName: String(supervisorName || '').trim(),
+      reason: String(reason || '').trim(),
+    },
+  });
+}
+
+export async function changeSelectionTitle({ ref, newTitleId, reason = '' }) {
+  return call('rs_change_selection_title', {
+    p_payload: {
+      ref: String(ref || '').trim().toUpperCase(),
+      newTitleId,
+      reason: String(reason || '').trim(),
+    },
+  });
+}
+
+export async function createOrder(input) {
+  const cleanPhone = normPhone(input.phone);
+  if (!cleanPhone) {
+    throw new ApiError('Enter a valid Tanzanian mobile number (e.g. 0712 345 678).', 'validation');
+  }
+  return call('rs_create_order', {
+    p_payload: {
+      id: `ord-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      packageName: input.packageName,
+      price: input.price,
+      unit: input.unit || '',
+      names: input.names,
+      regNo: normReg(input.regNo),
+      phone: cleanPhone,
+      supervisorName: String(input.supervisorName || '').trim(),
+      institution: String(input.institution || '').trim(),
+      programme: input.programme,
+      title: String(input.title || '').trim(),
+      selectionRef: String(input.selectionRef || '').trim().toUpperCase(),
+      notes: String(input.notes || '').trim(),
+    },
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -282,6 +337,67 @@ export async function releaseSelection({ selectionId, reason, actor }) {
     throw new ApiError('A reason of at least 5 characters is required.', 'validation');
   return call('rs_release_selection', {
     p_payload: { selectionId, reason: cleanReason, actor },
+  });
+}
+
+export async function listOrders({
+  q = '',
+  status = 'all',
+  packageName = 'all',
+  page = 1,
+  pageSize = 15,
+} = {}) {
+  return call('rs_list_orders', {
+    p_q: q,
+    p_status: status,
+    p_package: packageName,
+    p_page: page,
+    p_page_size: pageSize,
+  });
+}
+
+export async function updateOrder({ id, status, adminNotes = '', reason = '', actor }) {
+  return call('rs_update_order', {
+    p_payload: { id, status, adminNotes, reason, actor },
+  });
+}
+
+export async function listStudentsAdmin({
+  q = '',
+  programmeId = 'all',
+  filter = 'all',
+  page = 1,
+  pageSize = 15,
+} = {}) {
+  return call('rs_list_students', {
+    p_q: q,
+    p_programme_id: programmeId,
+    p_filter: filter,
+    p_page: page,
+    p_page_size: pageSize,
+  });
+}
+
+export async function updateStudentAdmin({ id, names, phone, supervisorName = '', reason = '', actor }) {
+  const cleanPhone = normPhone(phone);
+  if (!cleanPhone) {
+    throw new ApiError('Enter a valid Tanzanian mobile number (e.g. 0712 345 678).', 'validation');
+  }
+  return call('rs_update_student_admin', {
+    p_payload: {
+      id,
+      names,
+      phone: cleanPhone,
+      supervisorName: String(supervisorName || '').trim(),
+      reason,
+      actor,
+    },
+  });
+}
+
+export async function updateSiteContent({ key, data, reason = '', actor }) {
+  return call('rs_update_site_content', {
+    p_payload: { key, data, reason, actor },
   });
 }
 

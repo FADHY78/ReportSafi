@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getProgrammes } from '../lib/api';
+import { createOrder, getProgrammes, ApiError } from '../lib/api';
 import { useSiteContent } from '../lib/useSiteContent';
 import { useToast } from '../lib/toast';
 import { normPhone, normReg, phoneDisplay } from '../lib/utils';
@@ -13,14 +13,6 @@ import {
   IconShield,
   IconWhatsApp,
 } from '../ui/Icons';
-
-const ORDERS_STORAGE_KEY = 'rs_package_orders';
-
-function makeOrderRef() {
-  const year = new Date().getFullYear();
-  const suffix = String(Math.floor(1000 + Math.random() * 9000));
-  return `RS-ORD-${year}-${suffix}`;
-}
 
 function waDigits(phone) {
   const digits = String(phone || '').replace(/\D/g, '');
@@ -37,6 +29,7 @@ function buildInitialForm(selectedPackage, packages, session) {
     names: session?.student?.names || '',
     regNo: session?.student?.regNo || '',
     phone: session?.student?.phone || '',
+    supervisorName: session?.student?.supervisorName || '',
     institution: '',
     programme: progLabel,
     title: session?.existingSelection?.title?.text || '',
@@ -47,7 +40,7 @@ function buildInitialForm(selectedPackage, packages, session) {
 
 function formatOrderMessage(order) {
   const lines = [
-    'Hello Report Safi, I would like to place a package order:',
+    'Hello Report Safi, I have placed a package order:',
     '',
     `Order Ref: ${order.ref}`,
     `Package: ${order.packageName} (${order.price} · ${order.unit})`,
@@ -57,6 +50,7 @@ function formatOrderMessage(order) {
     `- Registration number: ${order.regNo}`,
     `- Active phone / WhatsApp: ${phoneDisplay(order.phone)}`,
   ];
+  if (order.supervisorName) lines.push(`- Supervisor name: ${order.supervisorName}`);
   if (order.institution) lines.push(`- College / Institution: ${order.institution}`);
   lines.push(`- Programme / Course: ${order.programme}`);
   if (order.selectionRef) lines.push(`- Portal title ref: ${order.selectionRef}`);
@@ -73,6 +67,7 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
   const [programmes, setProgrammes] = useState([]);
   const [form, setForm] = useState(() => buildInitialForm(selectedPackage, packages, session));
   const [errors, setErrors] = useState({});
+  const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(null);
 
   useEffect(() => {
@@ -90,6 +85,7 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
     if (!open) return;
     setForm(buildInitialForm(selectedPackage, packages, session));
     setErrors({});
+    setBusy(false);
     setSubmitted(null);
   }, [open, selectedPackage, packages, session]);
 
@@ -127,43 +123,40 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
     return Object.keys(next).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate() || busy) return;
 
-    const normalizedPhone = normPhone(form.phone);
-    const order = {
-      ref: makeOrderRef(),
-      createdAt: new Date().toISOString(),
-      packageName: currentPlan.name,
-      price: currentPlan.price,
-      unit: currentPlan.unit,
-      names: form.names.trim().replace(/\s+/g, ' '),
-      regNo: normReg(form.regNo),
-      phone: normalizedPhone,
-      institution: form.institution.trim(),
-      programme: form.programme.trim(),
-      title: form.title.trim(),
-      selectionRef: form.selectionRef.trim(),
-      notes: form.notes.trim(),
-    };
-
-    const message = formatOrderMessage(order);
-    const whatsappUrl = `https://wa.me/${waDigits(contact.phone)}?text=${encodeURIComponent(message)}`;
-    const mailSubject = `Package Order ${order.ref} — ${order.packageName}`;
-    const mailtoUrl = `mailto:${contact.email}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(message)}`;
-
+    setBusy(true);
     try {
-      const existing = JSON.parse(localStorage.getItem(ORDERS_STORAGE_KEY) || '[]');
-      const updated = [order, ...(Array.isArray(existing) ? existing : [])].slice(0, 20);
-      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      /* private mode — order stays in memory */
-    }
+      const order = await createOrder({
+        packageName: currentPlan.name,
+        price: currentPlan.price,
+        unit: currentPlan.unit,
+        names: form.names.trim().replace(/\s+/g, ' '),
+        regNo: normReg(form.regNo),
+        phone: form.phone,
+        supervisorName: form.supervisorName.trim(),
+        institution: form.institution.trim(),
+        programme: form.programme.trim(),
+        title: form.title.trim(),
+        selectionRef: form.selectionRef.trim(),
+        notes: form.notes.trim(),
+      });
 
-    setSubmitted({ order, message, whatsappUrl, mailtoUrl });
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-    notify('Order prepared — send it in WhatsApp to confirm with Report Safi.', 'success');
+      const message = formatOrderMessage(order);
+      const whatsappUrl = `https://wa.me/${waDigits(contact.phone)}?text=${encodeURIComponent(message)}`;
+      const mailSubject = `Package Order ${order.ref} — ${order.packageName}`;
+      const mailtoUrl = `mailto:${contact.email}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(message)}`;
+
+      setSubmitted({ order, message, whatsappUrl, mailtoUrl });
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      notify(`Order ${order.ref} saved — send it in WhatsApp to confirm.`, 'success');
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : 'Could not submit your order. Please try again.', 'error');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const copySummary = async () => {
@@ -186,17 +179,17 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
       open={open}
       onClose={onClose}
       wide
-      title={submitted ? 'Order ready to send' : 'Place your package order'}
+      title={submitted ? 'Order submitted & ready' : 'Place your package order'}
       sub={
         submitted
           ? `Order reference ${submitted.order.ref} · ${submitted.order.packageName}`
-          : 'Fill in your student details below to place your order directly with Report Safi.'
+          : 'Fill in your student details below to submit your order directly to Report Safi.'
       }
       foot={
         submitted ? (
           <>
             <Btn variant="outline" onClick={resetForAnother}>
-              Edit order
+              Place another order
             </Btn>
             <Btn variant="primary" onClick={onClose}>
               Done
@@ -207,8 +200,14 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
             <Btn variant="outline" onClick={onClose}>
               Cancel
             </Btn>
-            <Btn type="submit" form="package-order-form" variant="gold" icon={IconArrowRight}>
-              Place order via WhatsApp
+            <Btn
+              type="submit"
+              form="package-order-form"
+              variant="gold"
+              icon={IconArrowRight}
+              disabled={busy}
+            >
+              {busy ? 'Submitting order…' : 'Place order now'}
             </Btn>
           </>
         )
@@ -221,10 +220,10 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
               <IconCheckCircle size={22} />
             </span>
             <div>
-              <strong>Your order summary is ready ({submitted.order.ref})</strong>
+              <strong>Order recorded ({submitted.order.ref})</strong>
               <p className="small muted">
-                WhatsApp should open in a new tab with your full order pre-filled. If it did not
-                open, tap the WhatsApp button below or send it by email.
+                Your order has been saved for the Report Safi team and WhatsApp should open in a new
+                tab. If it did not open, tap the WhatsApp button below or send it by email.
               </p>
             </div>
           </div>
@@ -253,6 +252,10 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
               <span className="order-v mono">{phoneDisplay(submitted.order.phone)}</span>
             </div>
             <div>
+              <span className="order-k">Supervisor name</span>
+              <span className="order-v">{submitted.order.supervisorName || '—'}</span>
+            </div>
+            <div className="order-span-2">
               <span className="order-k">Programme</span>
               <span className="order-v">
                 {submitted.order.institution
@@ -388,6 +391,22 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
             </Field>
 
             <Field
+              label="Supervisor name"
+              htmlFor="order-sup"
+              hint="Optional — e.g. Dr. Asha Mnyamzi"
+            >
+              <input
+                id="order-sup"
+                className="inp"
+                value={form.supervisorName}
+                onChange={setField('supervisorName')}
+                placeholder="Dr. Asha Mnyamzi"
+              />
+            </Field>
+          </div>
+
+          <div className="form-grid-2">
+            <Field
               label="College / institution"
               htmlFor="order-inst"
               hint="Optional — e.g. CBE, IFM, UDSM, TIA"
@@ -406,29 +425,29 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
                 ))}
               </datalist>
             </Field>
-          </div>
 
-          <Field
-            label="Programme / course"
-            required
-            htmlFor="order-prog"
-            error={errors.programme}
-            hint="Select from the list or type your programme name"
-          >
-            <input
-              id="order-prog"
-              className="inp"
-              list="order-programmes"
-              value={form.programme}
-              onChange={setField('programme')}
-              placeholder="BAF — Bachelor of Accounting and Finance"
-            />
-            <datalist id="order-programmes">
-              {programmes.map((p) => (
-                <option key={p.id} value={`${p.code} — ${p.name}`} />
-              ))}
-            </datalist>
-          </Field>
+            <Field
+              label="Programme / course"
+              required
+              htmlFor="order-prog"
+              error={errors.programme}
+              hint="Select from the list or type your programme"
+            >
+              <input
+                id="order-prog"
+                className="inp"
+                list="order-programmes"
+                value={form.programme}
+                onChange={setField('programme')}
+                placeholder="BAF — Bachelor of Accounting and Finance"
+              />
+              <datalist id="order-programmes">
+                {programmes.map((p) => (
+                  <option key={p.id} value={`${p.code} — ${p.name}`} />
+                ))}
+              </datalist>
+            </Field>
+          </div>
 
           <Field
             label="Research title / topic"
@@ -464,8 +483,8 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
           </Field>
 
           <Notice tone="info" icon={IconShield}>
-            Submitting prepares your official order summary and opens WhatsApp directly with{' '}
-            <strong>{contact.phone}</strong> so you can confirm payment and start immediately.
+            Your order is recorded directly in Report Safi&rsquo;s order queue and opens WhatsApp
+            with <strong>{contact.phone}</strong> so our team can get started right away.
           </Notice>
         </form>
       )}

@@ -315,6 +315,30 @@ export const IconQuote = (p) => (
   </Svg>
 );
 
+export const IconShoppingBag = (p) => (
+  <Svg {...p}>
+    <path d="M6 7h12l1 13H5L6 7z" />
+    <path d="M9 7V6a3 3 0 0 1 6 0v1" />
+  </Svg>
+);
+
+export const IconSliders = (p) => (
+  <Svg {...p}>
+    <path d="M4 6h16M4 12h16M4 18h16" />
+    <circle cx="9" cy="6" r="2" fill="currentColor" />
+    <circle cx="15" cy="12" r="2" fill="currentColor" />
+    <circle cx="11" cy="18" r="2" fill="currentColor" />
+  </Svg>
+);
+
+export const IconUserCheck = (p) => (
+  <Svg {...p}>
+    <circle cx="9" cy="8" r="3.4" />
+    <path d="M3 20c0-3.3 2.7-5.4 6-5.4s6 2.1 6 5.4" />
+    <path d="M16 11.5l2 2 3.8-4" />
+  </Svg>
+);
+
 /** WhatsApp chat bubble — used by the floating contact button. */
 export const IconWhatsApp = (p) => (
   <Svg {...p}>

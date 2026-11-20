@@ -50,10 +50,12 @@ const s1 = await api.identify({
   regNo: ' baf/2024/00001 ',
   names: 'Neema Baraka Mushi',
   phone: '0712345678',
+  supervisorName: 'Dr. Asha Mnyamzi',
   programmeId: baf.id,
 });
 ok('identity normalised', s1.student.regNo === 'BAF/2024/00001' && s1.student.phone === '+255712345678',
   `${s1.student.regNo} / ${s1.student.phone}`);
+ok('supervisor name stored on identity', s1.student.supervisorName === 'Dr. Asha Mnyamzi', s1.student.supervisorName);
 ok('identity flagged as unverified', s1.verified === false);
 
 /* 4. reserve (BR-01..04) */
@@ -145,6 +147,79 @@ ok('audit log records actions', audit.total >= 6 && audit.rows.some((r) => r.act
 
 const sels = await api.listSelections({ status: 'active', pageSize: 10 });
 ok('selection listing paginates', sels.rows.length > 0 && sels.totalPages >= 1, `${sels.total} active`);
+
+/* 10. reference-number editing & title swap */
+const activeForEdit = await api.getSelectionForStudent(s1.student.id);
+const editedDetails = await api.updateSelectionDetails({
+  ref: activeForEdit.ref,
+  names: 'Neema Baraka Mushi',
+  phone: '0712345679',
+  supervisorName: 'Prof. Juma Kessy',
+  reason: 'Supervisor updated',
+});
+ok(
+  'reference number edits student details & records history',
+  editedDetails.student.supervisorName === 'Prof. Juma Kessy' && editedDetails.editCount === 1,
+  `editCount=${editedDetails.editCount}`
+);
+
+const nextAvail = (await api.getCatalogue({ programmeId: baf.id, status: 'available', pageSize: 5 })).rows[0];
+const oldTitleId = editedDetails.titleId;
+const swapped = await api.changeSelectionTitle({
+  ref: editedDetails.ref,
+  newTitleId: nextAvail.id,
+  reason: 'Changed focus with supervisor',
+});
+const oldTitleAfter = await api.getTitleById(oldTitleId);
+const newTitleAfter = await api.getTitleById(nextAvail.id);
+const editedList = await api.listSelections({ status: 'edited', pageSize: 10 });
+ok(
+  'reference number swaps title, frees old title & tracks edited records',
+  swapped.titleId === nextAvail.id &&
+    swapped.editCount === 2 &&
+    Boolean(swapped.previousTitleCode) &&
+    oldTitleAfter.available === true &&
+    newTitleAfter.available === false &&
+    editedList.rows.some((r) => r.ref === swapped.ref),
+  `${swapped.previousTitleCode} -> ${swapped.title.code}`
+);
+
+/* 11. package orders & students admin directory */
+const order = await api.createOrder({
+  packageName: 'Research Proposal + Research Report',
+  price: 'TSh 40,000',
+  unit: 'complete package',
+  names: 'Neema Baraka Mushi',
+  regNo: 'BAF/2024/00001',
+  phone: '0712345679',
+  supervisorName: 'Prof. Juma Kessy',
+  institution: 'CBE',
+  programme: 'BAF — Accounting & Finance',
+  title: swapped.title.text,
+  selectionRef: swapped.ref,
+  notes: 'Urgent',
+});
+ok('package order created with ref', /^RS-ORD-\d{4}-\d{5}$/.test(order.ref), order.ref);
+
+const updatedOrder = await api.updateOrder({
+  id: order.id,
+  status: 'in_progress',
+  adminNotes: 'Assigned to writer',
+  actor: admin,
+});
+const ordersList = await api.listOrders({ status: 'in_progress' });
+ok(
+  'admin updates & lists orders',
+  updatedOrder.status === 'in_progress' && ordersList.rows.some((o) => o.ref === order.ref),
+  `${ordersList.total} in progress`
+);
+
+const stuList = await api.listStudentsAdmin({ q: 'BAF/2024/00001' });
+ok(
+  'admin students directory finds student & supervisor',
+  stuList.rows.length === 1 && stuList.rows[0].supervisorName === 'Prof. Juma Kessy',
+  stuList.rows[0]?.supervisorName
+);
 
 console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : failures + ' CHECK(S) FAILED'}`);
 process.exit(failures === 0 ? 0 : 1);

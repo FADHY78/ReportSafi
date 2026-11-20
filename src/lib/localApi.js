@@ -16,7 +16,8 @@ export { subscribe } from './db.js';
 
 export async function getSiteContent() {
   await roundTrip();
-  return DEFAULT_SITE_CONTENT;
+  const db = loadDB();
+  return { ...DEFAULT_SITE_CONTENT, ...(db.siteContent || {}) };
 }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -53,6 +54,12 @@ function newRef(db) {
   const year = new Date().getFullYear();
   db.counters.ref = (db.counters.ref || 0) + 1;
   return `RS-TS-${year}-${pad(db.counters.ref, 5)}`;
+}
+
+function newOrderRef(db) {
+  const year = new Date().getFullYear();
+  db.counters.orderRef = (db.counters.orderRef || 0) + 1;
+  return `RS-ORD-${year}-${pad(db.counters.orderRef, 5)}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -139,11 +146,12 @@ export async function getCatalogue({
 }
 
 /** PRD §5.1 — capture identity. Stored, explicitly NOT verified. */
-export async function identify({ regNo, names, phone, programmeId }) {
+export async function identify({ regNo, names, phone, supervisorName = '', programmeId }) {
   await roundTrip();
   const cleanReg = normReg(regNo);
   const cleanNames = String(names || '').replace(/\s+/g, ' ').trim();
   const cleanPhone = normPhone(phone);
+  const cleanSupervisor = String(supervisorName || '').replace(/\s+/g, ' ').trim();
 
   if (cleanReg.length < 5) throw new ApiError('Enter a valid registration number.', 'validation');
   if (cleanNames.split(' ').filter(Boolean).length < 2)
@@ -164,6 +172,8 @@ export async function identify({ regNo, names, phone, programmeId }) {
       // A student who already holds a title keeps the programme they selected it under.
       student.names = cleanNames;
       student.phone = cleanPhone;
+      if (cleanSupervisor) student.supervisorName = cleanSupervisor;
+      else if (student.supervisorName === undefined) student.supervisorName = '';
       if (!existing) student.programmeId = programmeId;
       student.updatedAt = now;
     } else {
@@ -172,6 +182,7 @@ export async function identify({ regNo, names, phone, programmeId }) {
         regNo: cleanReg,
         names: cleanNames,
         phone: cleanPhone,
+        supervisorName: cleanSupervisor,
         programmeId,
         createdAt: now,
         updatedAt: now,
@@ -258,6 +269,12 @@ export async function reserve({ studentId, titleId }) {
       releasedAt: null,
       releaseReason: null,
       releasedBy: null,
+      editedAt: null,
+      editCount: 0,
+      previousTitleCode: null,
+      previousTitleText: null,
+      editNote: null,
+      editHistory: [],
     };
 
     db.selections.push(selection);
@@ -287,7 +304,195 @@ export async function getSelectionByRef(ref) {
   const title = allTitles(db).find((t) => t.id === sel.titleId) || null;
   const student = db.students.find((s) => s.id === sel.studentId) || null;
   const programme = db.programmes.find((p) => p.id === student?.programmeId) || null;
-  return { ...sel, title, student, programme };
+  return { ...sel, editCount: sel.editCount || 0, editHistory: sel.editHistory || [], title, student, programme };
+}
+
+export async function updateSelectionDetails({ ref, names, phone, supervisorName = '', reason = '' }) {
+  await roundTrip();
+  const cleanRef = String(ref || '').trim().toUpperCase();
+  const cleanNames = String(names || '').replace(/\s+/g, ' ').trim();
+  const cleanPhone = normPhone(phone);
+  const cleanSupervisor = String(supervisorName || '').replace(/\s+/g, ' ').trim();
+  const cleanReason = String(reason || '').replace(/\s+/g, ' ').trim() || 'Student updated details using reference number';
+
+  if (!cleanRef) throw new ApiError('Enter your selection reference number.', 'validation');
+  if (cleanNames.split(' ').filter(Boolean).length < 2)
+    throw new ApiError('Enter your full names (at least two parts).', 'validation');
+  if (!cleanPhone) throw new ApiError('Enter a valid Tanzanian mobile number (e.g. 0712 345 678).', 'validation');
+
+  return withLock(() => {
+    const db = loadDB();
+    const sel = db.selections.find((s) => s.ref.toUpperCase() === cleanRef);
+    if (!sel) throw new ApiError('No selection matches that reference number.', 'not_found');
+    if (sel.status !== 'active') throw new ApiError('Only an active selection can be edited with its reference number.', 'conflict');
+
+    const student = db.students.find((s) => s.id === sel.studentId);
+    if (!student) throw new ApiError('Student record not found.', 'not_found');
+
+    const now = new Date().toISOString();
+    const before = `${student.names} · ${student.phone}${student.supervisorName ? ` · Sup: ${student.supervisorName}` : ''}`;
+    const after = `${cleanNames} · ${cleanPhone}${cleanSupervisor ? ` · Sup: ${cleanSupervisor}` : ''}`;
+
+    student.names = cleanNames;
+    student.phone = cleanPhone;
+    student.supervisorName = cleanSupervisor;
+    student.updatedAt = now;
+
+    sel.editedAt = now;
+    sel.editCount = (sel.editCount || 0) + 1;
+    sel.editNote = cleanReason;
+    sel.editHistory = [
+      ...(sel.editHistory || []),
+      { at: now, type: 'details_edit', summary: 'Updated student details', before, after, reason: cleanReason },
+    ];
+
+    writeAudit(db, {
+      actor: cleanNames,
+      role: 'Student',
+      action: 'selection.edit_details',
+      entity: 'Selection',
+      entityId: sel.ref,
+      summary: `${student.regNo} updated details via ${sel.ref}`,
+      reason: cleanReason,
+      before,
+      after,
+    });
+    saveDB(db);
+
+    const title = allTitles(db).find((t) => t.id === sel.titleId) || null;
+    const programme = db.programmes.find((p) => p.id === student.programmeId) || null;
+    return { ...sel, title, student: { ...student }, programme };
+  });
+}
+
+export async function changeSelectionTitle({ ref, newTitleId, reason = '' }) {
+  await roundTrip();
+  const cleanRef = String(ref || '').trim().toUpperCase();
+  const cleanReason = String(reason || '').replace(/\s+/g, ' ').trim() || 'Student changed title using reference number';
+
+  if (!cleanRef) throw new ApiError('Reference number is required to change your title.', 'validation');
+
+  return withLock(() => {
+    const db = loadDB();
+    const sel = db.selections.find((s) => s.ref.toUpperCase() === cleanRef);
+    if (!sel) throw new ApiError('No selection matches that reference number.', 'not_found');
+    if (sel.status !== 'active') throw new ApiError('Only an active selection can change title.', 'conflict');
+
+    const student = db.students.find((s) => s.id === sel.studentId);
+    const titles = allTitles(db);
+    const oldTitle = titles.find((t) => t.id === sel.titleId);
+    const newTitle = titles.find((t) => t.id === newTitleId);
+
+    if (!newTitle) throw new ApiError('That title no longer exists.', 'not_found');
+    if (newTitle.status !== 'active') throw new ApiError('That title has been withdrawn from the catalogue.', 'inactive');
+    if (newTitle.programmeId !== student?.programmeId)
+      throw new ApiError('You may only select titles from your own programme.', 'wrong_programme');
+    if (newTitle.id === sel.titleId)
+      throw new ApiError('You already hold that title — choose a different available title.', 'validation');
+
+    const taken = activeTitleIds(db);
+    if (taken.has(newTitle.id))
+      throw new ApiError('This title has just been taken by another student.', 'unavailable');
+
+    const now = new Date().toISOString();
+    const before = `${oldTitle?.code || '—'} — ${oldTitle?.text || '—'}`;
+    const after = `${newTitle.code} — ${newTitle.text}`;
+
+    sel.previousTitleCode = oldTitle?.code || null;
+    sel.previousTitleText = oldTitle?.text || null;
+    sel.titleId = newTitle.id;
+    sel.editedAt = now;
+    sel.editCount = (sel.editCount || 0) + 1;
+    sel.editNote = cleanReason;
+    sel.editHistory = [
+      ...(sel.editHistory || []),
+      {
+        at: now,
+        type: 'title_change',
+        summary: `Changed title from ${oldTitle?.code || '—'} to ${newTitle.code}`,
+        before,
+        after,
+        reason: cleanReason,
+      },
+    ];
+
+    writeAudit(db, {
+      actor: student?.names || 'Student',
+      role: 'Student',
+      action: 'selection.change_title',
+      entity: 'Selection',
+      entityId: sel.ref,
+      summary: `${student?.regNo || '—'} changed title via ${sel.ref} (${oldTitle?.code || '—'} → ${newTitle.code})`,
+      reason: cleanReason,
+      before: before.slice(0, 80),
+      after: after.slice(0, 80),
+    });
+    saveDB(db);
+
+    const programme = db.programmes.find((p) => p.id === student?.programmeId) || null;
+    return { ...sel, title: { ...newTitle }, student: student ? { ...student } : null, programme };
+  });
+}
+
+export async function createOrder(input) {
+  await roundTrip();
+  const packageName = String(input.packageName || '').replace(/\s+/g, ' ').trim();
+  const price = String(input.price || '').replace(/\s+/g, ' ').trim();
+  const unit = String(input.unit || '').replace(/\s+/g, ' ').trim();
+  const names = String(input.names || '').replace(/\s+/g, ' ').trim();
+  const regNo = normReg(input.regNo);
+  const phone = normPhone(input.phone);
+  const supervisorName = String(input.supervisorName || '').replace(/\s+/g, ' ').trim();
+  const institution = String(input.institution || '').replace(/\s+/g, ' ').trim();
+  const programme = String(input.programme || '').replace(/\s+/g, ' ').trim();
+  const title = String(input.title || '').replace(/\s+/g, ' ').trim();
+  const selectionRef = String(input.selectionRef || '').trim().toUpperCase();
+  const notes = String(input.notes || '').replace(/\s+/g, ' ').trim();
+
+  if (!packageName) throw new ApiError('Select a package.', 'validation');
+  if (names.split(' ').filter(Boolean).length < 2) throw new ApiError('Enter your full names.', 'validation');
+  if (regNo.length < 5) throw new ApiError('Enter your real college registration number.', 'validation');
+  if (!phone) throw new ApiError('Enter a valid Tanzanian mobile number.', 'validation');
+  if (programme.length < 2) throw new ApiError('Enter your programme / course.', 'validation');
+
+  return withLock(() => {
+    const db = loadDB();
+    const now = new Date().toISOString();
+    const order = {
+      id: `ord-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      ref: newOrderRef(db),
+      packageName,
+      price,
+      unit,
+      names,
+      regNo,
+      phone,
+      supervisorName,
+      institution,
+      programme,
+      title,
+      selectionRef,
+      notes,
+      status: 'pending',
+      adminNotes: '',
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.orders.unshift(order);
+    writeAudit(db, {
+      actor: names,
+      role: 'Student',
+      action: 'order.create',
+      entity: 'Package order',
+      entityId: order.ref,
+      summary: `${regNo} ordered ${packageName} (${price})`,
+      reason: '—',
+      before: '—',
+      after: 'pending',
+    });
+    saveDB(db);
+    return { ...order };
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -383,16 +588,20 @@ export async function getAdminStats() {
     students: db.students.length,
     selections: db.selections.filter((s) => s.status === 'active').length,
     released: db.selections.filter((s) => s.status === 'released').length,
+    editedSelections: db.selections.filter((s) => (s.editCount || 0) > 0).length,
+    orders: (db.orders || []).length,
+    pendingOrders: (db.orders || []).filter((o) => o.status === 'pending').length,
     today: db.selections.filter((s) => new Date(s.selectedAt).toDateString() === today).length,
     perProgramme,
     recent: [...db.selections]
-      .sort((a, b) => new Date(b.selectedAt) - new Date(a.selectedAt))
+      .sort((a, b) => new Date(b.editedAt || b.selectedAt) - new Date(a.editedAt || a.selectedAt))
       .slice(0, 6)
       .map((s) => {
         const student = db.students.find((x) => x.id === s.studentId);
         const title = allTitles(db).find((t) => t.id === s.titleId);
         return { ...s, student, title };
       }),
+    recentOrders: (db.orders || []).slice(0, 6),
     audit: db.audit.slice(0, 6),
   };
 }
@@ -707,7 +916,8 @@ export async function listSelections({
     return { ...s, student, title, programme };
   });
 
-  if (status !== 'all') rows = rows.filter((r) => r.status === status);
+  if (status === 'edited') rows = rows.filter((r) => (r.editCount || 0) > 0);
+  else if (status !== 'all') rows = rows.filter((r) => r.status === status);
   if (programmeId !== 'all') rows = rows.filter((r) => r.student?.programmeId === programmeId);
 
   const needle = q.trim().toLowerCase();
@@ -718,11 +928,15 @@ export async function listSelections({
         r.student?.regNo.toLowerCase().includes(needle) ||
         r.student?.names.toLowerCase().includes(needle) ||
         r.student?.phone.includes(needle) ||
-        r.title?.text.toLowerCase().includes(needle)
+        (r.student?.supervisorName || '').toLowerCase().includes(needle) ||
+        (r.title?.text || '').toLowerCase().includes(needle) ||
+        (r.title?.code || '').toLowerCase().includes(needle) ||
+        (r.previousTitleText || '').toLowerCase().includes(needle) ||
+        (r.previousTitleCode || '').toLowerCase().includes(needle)
     );
   }
 
-  rows.sort((a, b) => new Date(b.selectedAt) - new Date(a.selectedAt));
+  rows.sort((a, b) => new Date(b.editedAt || b.selectedAt) - new Date(a.editedAt || a.selectedAt));
 
   const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -773,6 +987,229 @@ export async function releaseSelection({ selectionId, reason, actor }) {
     });
     saveDB(db);
     return { ...sel };
+  });
+}
+
+export async function listOrders({
+  q = '',
+  status = 'all',
+  packageName = 'all',
+  page = 1,
+  pageSize = 15,
+} = {}) {
+  await roundTrip();
+  const db = loadDB();
+  const all = db.orders || [];
+  const counts = {
+    total: all.length,
+    pending: all.filter((o) => o.status === 'pending').length,
+    confirmed: all.filter((o) => o.status === 'confirmed').length,
+    in_progress: all.filter((o) => o.status === 'in_progress').length,
+    completed: all.filter((o) => o.status === 'completed').length,
+    cancelled: all.filter((o) => o.status === 'cancelled').length,
+  };
+
+  let rows = all.slice();
+  if (status !== 'all') rows = rows.filter((o) => o.status === status);
+  if (packageName !== 'all') rows = rows.filter((o) => o.packageName === packageName);
+
+  const needle = q.trim().toLowerCase();
+  if (needle) {
+    rows = rows.filter(
+      (o) =>
+        o.ref.toLowerCase().includes(needle) ||
+        o.names.toLowerCase().includes(needle) ||
+        o.regNo.toLowerCase().includes(needle) ||
+        o.phone.toLowerCase().includes(needle) ||
+        (o.supervisorName || '').toLowerCase().includes(needle) ||
+        o.programme.toLowerCase().includes(needle) ||
+        (o.title || '').toLowerCase().includes(needle) ||
+        o.packageName.toLowerCase().includes(needle)
+    );
+  }
+
+  rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const current = Math.min(Math.max(1, page), totalPages);
+  const start = (current - 1) * pageSize;
+
+  return {
+    rows: rows.slice(start, start + pageSize),
+    total,
+    page: current,
+    totalPages,
+    counts,
+    from: total === 0 ? 0 : start + 1,
+    to: Math.min(start + pageSize, total),
+  };
+}
+
+export async function updateOrder({ id, status, adminNotes = '', reason = '', actor }) {
+  if (!actor?.name) throw new ApiError('Sign in to perform this action.', 'unauthorised');
+  if (!['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'].includes(status)) {
+    throw new ApiError('Invalid order status.', 'validation');
+  }
+
+  await roundTrip();
+  return withLock(() => {
+    const db = loadDB();
+    const order = (db.orders || []).find((o) => o.id === id);
+    if (!order) throw new ApiError('Order not found.', 'not_found');
+
+    const prevStatus = order.status;
+    order.status = status;
+    order.adminNotes = String(adminNotes || '').replace(/\s+/g, ' ').trim();
+    order.updatedAt = new Date().toISOString();
+
+    writeAudit(db, {
+      actor: actor.name,
+      role: actor.role,
+      action: 'order.update',
+      entity: 'Package order',
+      entityId: order.ref,
+      summary: `Updated order ${order.ref} (${prevStatus} → ${status})`,
+      reason: String(reason || '').trim() || 'Order status updated',
+      before: prevStatus,
+      after: status,
+    });
+    saveDB(db);
+    return { ...order };
+  });
+}
+
+export async function listStudentsAdmin({
+  q = '',
+  programmeId = 'all',
+  filter = 'all',
+  page = 1,
+  pageSize = 15,
+} = {}) {
+  await roundTrip();
+  const db = loadDB();
+  const titles = allTitles(db);
+  const programmes = new Map(db.programmes.map((p) => [p.id, p]));
+
+  let rows = db.students.map((st) => {
+    const prog = programmes.get(st.programmeId) || null;
+    const sel = activeSelectionOf(db, st.id);
+    const title = sel ? titles.find((t) => t.id === sel.titleId) || null : null;
+    return {
+      ...st,
+      supervisorName: st.supervisorName || '',
+      programmeCode: prog?.code || '—',
+      programmeName: prog?.name || '—',
+      selection: sel
+        ? {
+            id: sel.id,
+            ref: sel.ref,
+            status: sel.status,
+            selectedAt: sel.selectedAt,
+            editedAt: sel.editedAt || null,
+            editCount: sel.editCount || 0,
+            titleCode: title?.code || '—',
+            titleText: title?.text || '—',
+          }
+        : null,
+    };
+  });
+
+  if (programmeId !== 'all') rows = rows.filter((r) => r.programmeId === programmeId);
+  if (filter === 'with_selection') rows = rows.filter((r) => Boolean(r.selection));
+  if (filter === 'without_selection') rows = rows.filter((r) => !r.selection);
+  if (filter === 'edited') rows = rows.filter((r) => (r.selection?.editCount || 0) > 0);
+
+  const needle = q.trim().toLowerCase();
+  if (needle) {
+    rows = rows.filter(
+      (r) =>
+        r.names.toLowerCase().includes(needle) ||
+        r.regNo.toLowerCase().includes(needle) ||
+        r.phone.toLowerCase().includes(needle) ||
+        (r.supervisorName || '').toLowerCase().includes(needle) ||
+        (r.selection?.ref || '').toLowerCase().includes(needle) ||
+        (r.programmeCode || '').toLowerCase().includes(needle)
+    );
+  }
+
+  rows.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const current = Math.min(Math.max(1, page), totalPages);
+  const start = (current - 1) * pageSize;
+
+  return {
+    rows: rows.slice(start, start + pageSize),
+    total,
+    page: current,
+    totalPages,
+    from: total === 0 ? 0 : start + 1,
+    to: Math.min(start + pageSize, total),
+  };
+}
+
+export async function updateStudentAdmin({ id, names, phone, supervisorName = '', reason = '', actor }) {
+  if (!actor?.name) throw new ApiError('Sign in to perform this action.', 'unauthorised');
+  const cleanNames = String(names || '').replace(/\s+/g, ' ').trim();
+  const cleanPhone = normPhone(phone);
+  const cleanSupervisor = String(supervisorName || '').replace(/\s+/g, ' ').trim();
+  if (cleanNames.split(' ').filter(Boolean).length < 2)
+    throw new ApiError('Enter full names (at least two parts).', 'validation');
+  if (!cleanPhone) throw new ApiError('Enter a valid Tanzanian mobile number.', 'validation');
+
+  await roundTrip();
+  return withLock(() => {
+    const db = loadDB();
+    const student = db.students.find((s) => s.id === id);
+    if (!student) throw new ApiError('Student record not found.', 'not_found');
+
+    const before = `${student.names} · ${student.phone} · Sup: ${student.supervisorName || '—'}`;
+    student.names = cleanNames;
+    student.phone = cleanPhone;
+    student.supervisorName = cleanSupervisor;
+    student.updatedAt = new Date().toISOString();
+
+    writeAudit(db, {
+      actor: actor.name,
+      role: actor.role,
+      action: 'student.update',
+      entity: 'Student',
+      entityId: student.regNo,
+      summary: `Updated student ${student.regNo}`,
+      reason: String(reason || '').trim() || 'Admin updated student record',
+      before,
+      after: `${cleanNames} · ${cleanPhone} · Sup: ${cleanSupervisor || '—'}`,
+    });
+    saveDB(db);
+    return { ...student };
+  });
+}
+
+export async function updateSiteContent({ key, data, reason = '', actor }) {
+  if (!actor?.name) throw new ApiError('Sign in to perform this action.', 'unauthorised');
+  if (!['meta', 'contact', 'institutions', 'pricing', 'rules', 'faqs'].includes(key)) {
+    throw new ApiError('Unsupported site content section.', 'validation');
+  }
+  await roundTrip();
+  return withLock(() => {
+    const db = loadDB();
+    if (!db.siteContent || typeof db.siteContent !== 'object') db.siteContent = {};
+    db.siteContent[key] = data;
+    writeAudit(db, {
+      actor: actor.name,
+      role: actor.role,
+      action: 'content.update',
+      entity: 'Site content',
+      entityId: key,
+      summary: `Updated site content section: ${key}`,
+      reason: String(reason || '').trim() || 'Updated site content',
+      before: '—',
+      after: key,
+    });
+    saveDB(db);
+    return { ...DEFAULT_SITE_CONTENT, ...db.siteContent };
   });
 }
 

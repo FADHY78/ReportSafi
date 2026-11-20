@@ -4784,7 +4784,79 @@ textarea.inp {
   gap: 10px;
 }
 
+.ref-lookup-card {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: var(--r-l);
+  background: var(--card);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--sh-1);
+}
+
+.ref-lookup-head h3 {
+  font-size: 1.04rem;
+  margin: 8px 0 6px;
+}
+
+.ref-lookup-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+
+.ref-lookup-row .inp {
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-history-box {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+}
+
+.edit-history-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gold-ink);
+  font-size: 0.85rem;
+}
+
+.edit-history-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.edit-history-list li {
+  padding: 11px 13px;
+  border-radius: var(--r-s);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+}
+
+.edit-history-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--heading);
+}
+
 @media (max-width: 640px) {
+  .ref-lookup-row {
+    flex-direction: column;
+  }
+
   .order-plan-bar {
     flex-direction: column;
   }

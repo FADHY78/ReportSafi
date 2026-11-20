@@ -41,13 +41,24 @@ const TAG_MAP = {
   inactive: { cls: 'tag-grey', label: 'Withdrawn' },
   released: { cls: 'tag-grey', label: 'Released' },
   pending: { cls: 'tag-amber', label: 'Pending' },
+  confirmed: { cls: 'tag-navy', label: 'Confirmed' },
+  in_progress: { cls: 'tag-amber', label: 'In progress' },
+  completed: { cls: 'tag-green', label: 'Completed' },
+  cancelled: { cls: 'tag-red', label: 'Cancelled' },
+  edited: { cls: 'tag-amber', label: 'Edited' },
 };
 
 export function StatusTag({ status, label }) {
   const conf = TAG_MAP[status] || TAG_MAP.active;
+  const dotCls =
+    status === 'available' || status === 'active' || status === 'completed'
+      ? 'dot-green'
+      : status === 'unavailable' || status === 'cancelled'
+      ? 'dot-red'
+      : 'dot-navy';
   return (
     <span className={cls('tag', conf.cls)}>
-      <span className={cls('dot', status === 'available' || status === 'active' ? 'dot-green' : status === 'unavailable' ? 'dot-red' : 'dot-navy')} />
+      <span className={cls('dot', dotCls)} />
       {label || conf.label}
     </span>
   );

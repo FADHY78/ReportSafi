@@ -3,7 +3,7 @@ import { useRoute, navigate } from './lib/router';
 import { goSection } from './lib/scroll';
 import { ToastProvider, useToast } from './lib/toast';
 import SiteContentProvider from './lib/siteContent';
-import { getSelectionForStudent, subscribe } from './lib/api';
+import { getSelectionForStudent, getSelectionByRef, subscribe } from './lib/api';
 
 import SiteHeader from './components/SiteHeader';
 import SiteFooter from './components/SiteFooter';
@@ -32,15 +32,48 @@ function readJSON(key) {
 }
 
 function Shell() {
-  const { path } = useRoute();
+  const { path, query } = useRoute();
   const notify = useToast();
 
   const [session, setSession] = useState(() => readJSON(SESSION_KEY));
   const [held, setHeld] = useState(null);
   const [tick, setTick] = useState(0);
 
+  const onIdentified = useCallback((result) => {
+    const next = { student: result.student, programme: result.programme };
+    setSession(next);
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
+    } catch {
+      /* private mode — session stays in memory only */
+    }
+  }, []);
+
   /* any change written by this tab or another refreshes what we display */
   useEffect(() => subscribe(() => setTick((t) => t + 1)), []);
+
+  /* if the student enters /catalogue or /confirm with ?editRef=..., hydrate session from that ref */
+  const editRef = query?.get('editRef') || '';
+  useEffect(() => {
+    let alive = true;
+    if (!editRef || session) return () => {};
+    getSelectionByRef(editRef)
+      .then((rec) => {
+        if (!alive) return;
+        if (rec?.student && rec?.programme && rec.status === 'active') {
+          onIdentified({ student: rec.student, programme: rec.programme });
+        } else {
+          notify('Reference number not found or no longer active.', 'error');
+          navigate('/reference', { replace: true });
+        }
+      })
+      .catch(() => {
+        if (alive) navigate('/reference', { replace: true });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [editRef, session, onIdentified, notify]);
 
   /* keep the student's active selection in sync (PRD: one title per student) */
   useEffect(() => {
@@ -73,24 +106,14 @@ function Shell() {
       navigate('/', { replace: true });
       return;
     }
-    if (STUDENT_ROUTES.includes(path) && !session) {
+    if (STUDENT_ROUTES.includes(path) && !session && !editRef) {
       notify('Identify yourself before opening the catalogue.', 'error');
       goSection('identify');
       return;
     }
-  }, [path, session, notify]);
+  }, [path, session, editRef, notify]);
 
   /* ------------------------------------------------------ session mgmt */
-  const onIdentified = useCallback((result) => {
-    const next = { student: result.student, programme: result.programme };
-    setSession(next);
-    try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
-    } catch {
-      /* private mode — session stays in memory only */
-    }
-  }, []);
-
   const clearStudent = useCallback(() => {
     setSession(null);
     setHeld(null);
@@ -112,9 +135,9 @@ function Shell() {
   } else if (path === '/catalogue') {
     page = <Catalogue session={studentView} onResetSession={clearStudent} />;
   } else if (path === '/confirm') {
-    page = <Confirm session={studentView} />;
+    page = <Confirm session={studentView} onSyncSession={onIdentified} />;
   } else if (path === '/reference') {
-    page = <Reference />;
+    page = <Reference onSyncSession={onIdentified} />;
   } else if (path === '/help') {
     page = <Help />;
   } else if (path === '/features') {

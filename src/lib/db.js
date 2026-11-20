@@ -506,6 +506,7 @@ function seedHistory(db) {
       regNo,
       names,
       phone,
+      supervisorName: '',
       programmeId: programme.id,
       createdAt: selectedAt,
       updatedAt: selectedAt,
@@ -522,6 +523,12 @@ function seedHistory(db) {
       releasedAt: null,
       releaseReason: null,
       releasedBy: null,
+      editedAt: null,
+      editCount: 0,
+      previousTitleCode: null,
+      previousTitleText: null,
+      editNote: null,
+      editHistory: [],
     });
     seq += 1;
     refSeq += 1;
@@ -616,8 +623,10 @@ function seedDB() {
     titleOverrides: {},
     students: [],
     selections: [],
+    orders: [],
+    siteContent: {},
     audit: [],
-    counters: { ref: 412 },
+    counters: { ref: 412, orderRef: 0 },
     admins: [
       {
         id: 'adm-1',
@@ -643,7 +652,13 @@ export function loadDB() {
     const raw = localStorage.getItem(DB_KEY);
     if (raw) {
       const db = JSON.parse(raw);
-      if (db && db.v === DB_VERSION) return db;
+      if (db && db.v === DB_VERSION) {
+        if (!Array.isArray(db.orders)) db.orders = [];
+        if (!db.siteContent || typeof db.siteContent !== 'object') db.siteContent = {};
+        if (!db.counters) db.counters = { ref: 412, orderRef: 0 };
+        if (typeof db.counters.orderRef !== 'number') db.counters.orderRef = 0;
+        return db;
+      }
     }
   } catch (err) {
     console.warn('Stored portal data could not be read, reseeding.', err);

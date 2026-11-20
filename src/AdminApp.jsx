@@ -4,20 +4,35 @@ import { useRoute, navigate } from './lib/router';
 import Login from './pages/admin/Login';
 import AdminShell from './pages/admin/AdminShell';
 import Dashboard from './pages/admin/Dashboard';
+import Orders from './pages/admin/Orders';
 import Programmes from './pages/admin/Programmes';
 import Titles from './pages/admin/Titles';
 import Selections from './pages/admin/Selections';
+import Students from './pages/admin/Students';
+import Settings from './pages/admin/Settings';
 import Audit from './pages/admin/Audit';
 
 const SESSION_KEY = 'rs_admin_session';
 
-const ROUTES = ['/dashboard', '/programmes', '/titles', '/selections', '/audit'];
+const ROUTES = [
+  '/dashboard',
+  '/orders',
+  '/selections',
+  '/students',
+  '/programmes',
+  '/titles',
+  '/settings',
+  '/audit',
+];
 
 const META = {
   '/dashboard': { title: 'Dashboard', crumb: 'Workspace / Overview' },
+  '/orders': { title: 'Package orders', crumb: 'Workspace / Orders' },
+  '/selections': { title: 'Student selections', crumb: 'Workspace / Reservations' },
+  '/students': { title: 'Students directory', crumb: 'Workspace / Students' },
   '/programmes': { title: 'Programmes', crumb: 'Workspace / Catalogue structure' },
   '/titles': { title: 'Title catalogue', crumb: 'Workspace / Titles' },
-  '/selections': { title: 'Student selections', crumb: 'Workspace / Reservations' },
+  '/settings': { title: 'Site & pricing', crumb: 'Workspace / Configuration' },
   '/audit': { title: 'Audit log', crumb: 'Workspace / History' },
 };
 
@@ -79,9 +94,12 @@ export default function AdminApp() {
   return (
     <AdminShell path={path} title={meta.title} crumb={meta.crumb} admin={admin} onLogout={onLogout}>
       {path === '/dashboard' && <Dashboard />}
+      {path === '/orders' && <Orders admin={admin} />}
+      {path === '/selections' && <Selections admin={admin} />}
+      {path === '/students' && <Students admin={admin} />}
       {path === '/programmes' && <Programmes admin={admin} />}
       {path === '/titles' && <Titles admin={admin} />}
-      {path === '/selections' && <Selections admin={admin} />}
+      {path === '/settings' && <Settings admin={admin} />}
       {path === '/audit' && <Audit />}
     </AdminShell>
   );

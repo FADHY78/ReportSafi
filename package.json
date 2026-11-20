@@ -11,6 +11,7 @@
     "test:rules": "node scripts/smoke.mjs",
     "preview": "vite preview",
     "db:setup": "node --env-file=.env.local scripts/supabase-setup.mjs",
+    "db:migrate": "node --env-file=.env.local scripts/supabase-migrate.mjs",
     "db:reset": "node --env-file=.env.local scripts/supabase-setup.mjs --reset"
   },
   "dependencies": {

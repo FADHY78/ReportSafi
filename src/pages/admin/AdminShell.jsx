@@ -6,16 +6,25 @@ import {
   IconFolder,
   IconFileText,
   IconUsers,
+  IconUserCheck,
+  IconShoppingBag,
+  IconSliders,
   IconHistory,
   IconPower,
   IconArrowLeft,
 } from '../../ui/Icons';
 
-const NAV = [
+const MANAGE_NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: IconGauge },
+  { to: '/orders', label: 'Orders', icon: IconShoppingBag },
+  { to: '/selections', label: 'Selections', icon: IconUsers },
+  { to: '/students', label: 'Students', icon: IconUserCheck },
   { to: '/programmes', label: 'Programmes', icon: IconFolder },
   { to: '/titles', label: 'Title catalogue', icon: IconFileText },
-  { to: '/selections', label: 'Selections', icon: IconUsers },
+];
+
+const SYSTEM_NAV = [
+  { to: '/settings', label: 'Site & pricing', icon: IconSliders },
   { to: '/audit', label: 'Audit log', icon: IconHistory },
 ];
 
@@ -33,7 +42,19 @@ export default function AdminShell({ path, title, crumb, admin, onLogout, childr
 
         <nav className="admin-nav" aria-label="Administration">
           <div className="admin-nav-label">Manage</div>
-          {NAV.map((item) => (
+          {MANAGE_NAV.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={cls('admin-nav-item', path === item.to && 'is-active')}
+            >
+              <item.icon size={17} />
+              {item.label}
+            </Link>
+          ))}
+
+          <div className="admin-nav-label">System</div>
+          {SYSTEM_NAV.map((item) => (
             <Link
               key={item.to}
               to={item.to}

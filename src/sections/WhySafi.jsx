@@ -1,54 +1,65 @@
 import { Link } from '../lib/router';
 import { IconClock, IconSearch, IconPrinter, IconGraduation, IconArrowRight } from '../ui/Icons';
-
-/**
- * Replaces the invented testimonial quotes with the reason the service exists.
- * The four value cards follow the "why choose us" block from the legacy site,
- * rewritten for title selection rather than report writing.
- */
-const VALUES = [
-  {
-    no: '01',
-    icon: IconClock,
-    title: 'Save the chasing',
-    text: 'No queue at the office, no shared spreadsheet to cross-check. The catalogue tells you straight away whether a title is still yours to reserve.',
-  },
-  {
-    no: '02',
-    icon: IconSearch,
-    title: 'Order in a few taps',
-    text: 'Choose your programme, search the catalogue and reserve from a phone — the same flow works on a laptop in the campus lab.',
-  },
-  {
-    no: '03',
-    icon: IconPrinter,
-    title: 'Ready for your supervisor',
-    text: 'Your confirmation carries a dated reference number you can print or forward. No photocopy, no “come back tomorrow”.',
-  },
-  {
-    no: '04',
-    icon: IconGraduation,
-    title: 'Grounded in local standards',
-    text: 'The catalogue and report packages follow Tanzanian university guidelines, with a Research Office that can audit every action.',
-  },
-];
+import { useLanguage } from '../lib/i18n';
 
 export default function WhySafi() {
+  const { t } = useLanguage();
+
+  const values = [
+    {
+      no: '01',
+      icon: IconClock,
+      title: t('why_card1_title', 'Okoa muda na usumbufu'),
+      text: t(
+        'why_card1_text',
+        'Hakuna foleni ofisini, hakuna kubishania mada wala kukagua spreadsheets. Mfumo unakuonyesha papo hapo kama mada bado iko wazi.'
+      ),
+    },
+    {
+      no: '02',
+      icon: IconSearch,
+      title: t('why_card2_title', 'Rahisi kwenye simu au kompyuta'),
+      text: t(
+        'why_card2_text',
+        'Chagua kozi yako, tafuta mada na uihifadhi kupitia simu yako popote ulipo — mfumo huo huo unafanya kazi kompyuta za maabara ya chuo.'
+      ),
+    },
+    {
+      no: '03',
+      icon: IconPrinter,
+      title: t('why_card3_title', 'Tayari kwa msimamizi wako'),
+      text: t(
+        'why_card3_text',
+        'Uthibitisho wako unakuja na namba rasmi ya kumbukumbu (Reference) na tarehe unayoweza kuichapa au kuituma kwa msimamizi wako bila kuambiwa “njoo kesho”.'
+      ),
+    },
+    {
+      no: '04',
+      icon: IconGraduation,
+      title: t('why_card4_title', 'Kulingana na vigezo vya Tanzania'),
+      text: t(
+        'why_card4_text',
+        'Mada zote na ripoti zinafuata miongozo ya vyuo vikuu vya Tanzania na Tume ya Vyuo Vikuu (TCU), zikiwa na kumbukumbu kamili ya ukaguzi.'
+      ),
+    },
+  ];
+
   return (
     <section className="section" id="why-safi">
       <div className="container">
         <div className="section-head">
-          <span className="eyebrow">Why Report Safi</span>
-          <h2>The tedious part is ours, not yours</h2>
+          <span className="eyebrow">{t('why_eyebrow', 'Kwa Nini Report Safi')}</span>
+          <h2>{t('why_heading', 'Kazi ngumu na usumbufu tuachie sisi')}</h2>
           <p>
-            Report Safi started by taking the stress out of academic writing. This portal keeps the
-            same promise for title selection: less chasing, clearer records, and work that is ready
-            to submit.
+            {t(
+              'why_sub',
+              'Report Safi ilianza kwa kuondoa msongo wa mawazo kwenye uandishi wa ripoti na proposals za utafiti. Mfumo huu unaendeleza ahadi hiyo kwa uchaguzi wa mada: hakuna foleni, kumbukumbu safi, na kazi iliyo tayari kuwasilishwa.'
+            )}
           </p>
         </div>
 
         <div className="value-grid">
-          {VALUES.map((v) => (
+          {values.map((v) => (
             <article className="value-card" key={v.no}>
               <span className="value-no">{v.no}</span>
               <span className="value-icon">
@@ -62,15 +73,14 @@ export default function WhySafi() {
 
         <div className="value-banner">
           <div>
-            <span className="eyebrow-light">The whole idea</span>
-            <h2>One title. One student. One written record.</h2>
+            <span className="eyebrow-light">Dhamira Kuu</span>
+            <h2>Mada moja. Mwanafunzi mmoja. Uthibitisho mmoja wa maandishi.</h2>
             <p>
-              The portal enforces the rules while you work, so the Research Office never has to
-              untangle two students claiming the same title.
+              Mfumo unadhibiti kanuni kiotomatiki wakati unachagua, ili idara ya utafiti isipate mkanganyiko wa wanafunzi wawili kudai mada moja.
             </p>
           </div>
           <Link to="/help" className="btn btn-outline">
-            See how it works <IconArrowRight size={15} />
+            {t('hero_btn_works', 'Jinsi Mfumo Unavyofanya Kazi')} <IconArrowRight size={15} />
           </Link>
         </div>
       </div>

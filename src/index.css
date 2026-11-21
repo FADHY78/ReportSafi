@@ -604,6 +604,53 @@ textarea.inp {
   gap: 10px;
 }
 
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 5px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.lang-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted-2);
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  line-height: 1.1;
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: inherit;
+}
+
+.lang-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lang-btn.is-active {
+  background: var(--gold);
+  color: #07131c;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(214, 178, 96, 0.35);
+}
+
+.lang-divider {
+  color: var(--line);
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
 .nav-toggle {
   display: none;
   align-items: center;

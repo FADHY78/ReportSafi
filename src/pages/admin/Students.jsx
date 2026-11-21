@@ -6,6 +6,7 @@ import {
   ApiError,
 } from '../../lib/api';
 import { useToast } from '../../lib/toast';
+import { DAR_ES_SALAAM_UNIVERSITIES } from '../../lib/institutions';
 import { Btn, Field, Modal, StatusTag, Pager, Empty, SkeletonRows } from '../../ui/primitives';
 import { IconSearch, IconDownload, IconUsers, IconPencil, IconRefresh } from '../../ui/Icons';
 import { fmtDateTime, phoneDisplay, toCSV, downloadFile } from '../../lib/utils';
@@ -52,6 +53,7 @@ export default function Students({ admin }) {
       names: st.names || '',
       phone: st.phone || '',
       supervisorName: st.supervisorName || '',
+      institution: st.institution || '',
       reason: '',
     });
   };
@@ -66,6 +68,7 @@ export default function Students({ admin }) {
         names: form.names,
         phone: form.phone,
         supervisorName: form.supervisorName,
+        institution: form.institution,
         reason: form.reason,
         actor: admin,
       });
@@ -189,6 +192,7 @@ export default function Students({ admin }) {
             <thead>
               <tr>
                 <th>Student</th>
+                <th>College / Inst</th>
                 <th>Supervisor</th>
                 <th>Phone</th>
                 <th>Programme</th>
@@ -204,6 +208,7 @@ export default function Students({ admin }) {
                     <span className="strong">{st.names}</span>
                     <div className="mono small">{st.regNo}</div>
                   </td>
+                  <td><span className="badge">{st.institution || '—'}</span></td>
                   <td>{st.supervisorName || <span className="muted">—</span>}</td>
                   <td className="mono small">{phoneDisplay(st.phone)}</td>
                   <td className="mono">{st.programmeCode || '—'}</td>
@@ -279,6 +284,21 @@ export default function Students({ admin }) {
               value={form.names}
               onChange={(e) => setForm((f) => ({ ...f, names: e.target.value }))}
             />
+          </Field>
+          <Field label="College / University (Dar es Salaam)" htmlFor="st-inst">
+            <select
+              id="st-inst"
+              className="select"
+              value={form.institution}
+              onChange={(e) => setForm((f) => ({ ...f, institution: e.target.value }))}
+            >
+              <option value="">-- Select Dar es Salaam University / College --</option>
+              {DAR_ES_SALAAM_UNIVERSITIES.map((u) => (
+                <option key={u.code} value={u.code}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
           </Field>
           <div className="form-grid-2">
             <Field label="Phone" required htmlFor="st-phone">

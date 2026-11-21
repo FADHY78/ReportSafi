@@ -14,14 +14,8 @@ import {
 } from '../ui/Icons';
 import { cls } from '../lib/utils';
 import { useSiteContent } from '../lib/useSiteContent';
-
-const NAV = [
-  { to: '/', label: 'Home', icon: IconBuilding },
-  { to: '/features', label: 'Features', icon: IconLayers },
-  { to: '/catalogue', label: 'Catalogue', icon: IconSearch },
-  { to: '/pricing', label: 'Pricing', icon: IconClipboard },
-  { to: '/help', label: 'Help', icon: IconInfo },
-];
+import { useLanguage } from '../lib/i18n';
+import LanguageSwitcher from './LanguageSwitcher';
 
 function isActive(path, to) {
   return path === to || (to !== '/' && path.startsWith(to));
@@ -31,10 +25,19 @@ export default function SiteHeader({ path }) {
   const [open, setOpen] = useState(false);
   const [stuck, setStuck] = useState(false);
   const { contact } = useSiteContent();
+  const { t } = useLanguage();
   const toggleRef = useRef(null);
   const sheetRef = useRef(null);
   const wasOpen = useRef(false);
   const close = () => setOpen(false);
+
+  const navItems = [
+    { to: '/', label: t('nav_home', 'Mwanzo'), icon: IconBuilding },
+    { to: '/features', label: t('nav_features', 'Vipengele'), icon: IconLayers },
+    { to: '/catalogue', label: t('nav_catalogue', 'Mada za Utafiti'), icon: IconSearch },
+    { to: '/pricing', label: t('nav_pricing', 'Bei na Vifurushi'), icon: IconClipboard },
+    { to: '/help', label: t('nav_help', 'Msaada'), icon: IconInfo },
+  ];
 
   /* elevate the bar once the page has scrolled — the marketing-page convention */
   useEffect(() => {
@@ -99,12 +102,12 @@ export default function SiteHeader({ path }) {
             <BrandMark size={40} />
             <span className="brand-text">
               <strong>Report Safi</strong>
-              <span>Title Selection Portal</span>
+              <span>{t('brand_sub', 'Mfumo Rasmi wa Uchaguzi wa Mada')}</span>
             </span>
           </Link>
 
           <nav className="main-nav" aria-label="Main">
-            {NAV.map(({ to, label }) => (
+            {navItems.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
@@ -116,8 +119,9 @@ export default function SiteHeader({ path }) {
           </nav>
 
           <div className="header-actions">
+            <LanguageSwitcher />
             <Link to="/catalogue" className="btn btn-primary btn-sm">
-              Start selection <IconArrowRight size={15} />
+              {t('nav_start', 'Chagua Mada')} <IconArrowRight size={15} />
             </Link>
             <button
               ref={toggleRef}
@@ -149,14 +153,17 @@ export default function SiteHeader({ path }) {
         aria-hidden={!open}
       >
         <div className="mobile-sheet-head">
-          <span className="eyebrow">Navigate</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="eyebrow" style={{ margin: 0 }}>Menu</span>
+            <LanguageSwitcher />
+          </div>
           <button className="icon-btn" type="button" aria-label="Close menu" onClick={close}>
             <IconX size={18} />
           </button>
         </div>
 
         <ul className="mobile-links">
-          {NAV.map(({ to, label, icon: Icon }, i) => (
+          {navItems.map(({ to, label, icon: Icon }, i) => (
             <li key={to} style={{ '--i': i }}>
               <Link
                 to={to}
@@ -182,7 +189,7 @@ export default function SiteHeader({ path }) {
             }}
             tabIndex={open ? 0 : -1}
           >
-            Start selection <IconArrowRight size={16} />
+            {t('nav_start', 'Chagua Mada')} <IconArrowRight size={16} />
           </button>
           <a className="mobile-contact" href={`mailto:${contact.email}`} tabIndex={open ? 0 : -1}>
             <IconMail size={14} /> {contact.email}

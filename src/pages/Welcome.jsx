@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { navigate } from '../lib/router';
 import { getProgrammes, getPublicStats, getSelectionByRef, identify, ApiError } from '../lib/api';
 import { useToast } from '../lib/toast';
+import { useLanguage } from '../lib/i18n';
+import { DAR_ES_SALAAM_UNIVERSITIES } from '../lib/institutions';
 import { Btn, Field, Notice } from '../ui/primitives';
 import {
   IconArrowRight,
@@ -15,6 +17,7 @@ import {
   IconAlert,
   IconFileText,
   IconPencil,
+  IconBuilding,
 } from '../ui/Icons';
 
 import SelectionRecord from '../components/SelectionRecord';
@@ -22,34 +25,6 @@ import LogoCloud from '../sections/LogoCloud';
 import Showcase from '../sections/Showcase';
 import WhySafi from '../sections/WhySafi';
 import CtaBand from '../sections/CtaBand';
-
-const NEEDS = [
-  {
-    icon: IconHash,
-    title: 'Registration number',
-    text: 'Your student registration number, exactly as printed on your student card.',
-  },
-  {
-    icon: IconUsers,
-    title: 'Full names',
-    text: 'All names as they appear in the college register — no abbreviations.',
-  },
-  {
-    icon: IconPhone,
-    title: 'Active phone number',
-    text: 'A number you can still receive SMS on. It is the only way we can reach you.',
-  },
-  {
-    icon: IconUserCheck,
-    title: 'Supervisor name',
-    text: 'Your assigned research or project supervisor’s full name.',
-  },
-  {
-    icon: IconGraduation,
-    title: 'Programme / course',
-    text: 'You may only browse and reserve titles belonging to your own programme.',
-  },
-];
 
 function AnimatedStat({ value, label }) {
   const hostRef = useRef(null);
@@ -128,6 +103,7 @@ function AnimatedStat({ value, label }) {
 
 export default function Welcome({ session, onIdentified }) {
   const notify = useToast();
+  const { t } = useLanguage();
   const [programmes, setProgrammes] = useState([]);
   const [stats, setStats] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -136,6 +112,7 @@ export default function Welcome({ session, onIdentified }) {
     regNo: '',
     names: '',
     phone: '',
+    institution: '',
     supervisorName: '',
     programmeId: '',
   });
@@ -143,6 +120,39 @@ export default function Welcome({ session, onIdentified }) {
   const [refLookup, setRefLookup] = useState('');
   const [refBusy, setRefBusy] = useState(false);
   const [refError, setRefError] = useState('');
+
+  const needs = [
+    {
+      icon: IconHash,
+      title: t('need_reg_title', 'Namba ya usajili wa chuo'),
+      text: t('need_reg_text', 'Namba yako ya chuo, kama ilivyoandikwa kwenye kitambulisho chako cha mwanafunzi.'),
+    },
+    {
+      icon: IconUsers,
+      title: t('need_names_title', 'Majina kamili'),
+      text: t('need_names_text', 'Majina yako yote kama yanavyoonekana kwenye orodha rasmi ya chuo — bila vifupisho.'),
+    },
+    {
+      icon: IconBuilding,
+      title: t('need_inst_title', 'Chuo Kikuu / Taasisi (Dar es Salaam)'),
+      text: t('need_inst_text', 'Chuo kikuu au taasisi unayosoma hapa Dar es Salaam (mf. CBE, DMI, NIT, IFM, TIA, n.k.).'),
+    },
+    {
+      icon: IconUserCheck,
+      title: t('need_supervisor_title', 'Msimamizi wa utafiti (Supervisor)'),
+      text: t('need_supervisor_text', 'Jina kamili la msimamizi wako wa utafiti au mradi uliyepangiwa na chuo.'),
+    },
+    {
+      icon: IconPhone,
+      title: t('need_phone_title', 'Namba ya simu inayopatikana'),
+      text: t('need_phone_text', 'Namba ya simu unayotumia na inayopokea simu na SMS mara moja.'),
+    },
+    {
+      icon: IconGraduation,
+      title: t('need_prog_title', 'Programu / Kozi ya masomo'),
+      text: t('need_prog_text', 'Unaweza tu kuona na kuchagua mada zinazohusu fani au kozi unayosomea.'),
+    },
+  ];
 
   useEffect(() => {
     let alive = true;
@@ -160,12 +170,15 @@ export default function Welcome({ session, onIdentified }) {
 
   const validate = () => {
     const next = {};
-    if (form.regNo.trim().length < 5) next.regNo = 'Enter your registration number.';
+    if (form.regNo.trim().length < 5) next.regNo = t('err_reg', 'Weka namba yako halisi ya usajili wa chuo.');
     if (form.names.trim().split(/\s+/).filter(Boolean).length < 2)
-      next.names = 'Enter your full names.';
-    if (!form.phone.trim()) next.phone = 'Enter your active phone number.';
-    if (form.supervisorName.trim().length < 2) next.supervisorName = 'Enter your supervisor name.';
-    if (!form.programmeId) next.programmeId = 'Choose your programme.';
+      next.names = t('err_names', 'Weka majina yako kamili (angalau majina mawili).');
+    if (!form.institution)
+      next.institution = t('err_inst', 'Chagua chuo kikuu au taasisi yako ya Dar es Salaam.');
+    if (form.supervisorName.trim().length < 2)
+      next.supervisorName = t('err_supervisor', 'Weka jina kamili la msimamizi wako wa utafiti.');
+    if (!form.phone.trim()) next.phone = t('err_phone', 'Weka namba sahihi ya simu inayopatikana.');
+    if (!form.programmeId) next.programmeId = t('err_prog', 'Chagua programu au kozi unayosomea.');
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -175,14 +188,14 @@ export default function Welcome({ session, onIdentified }) {
     const clean = refLookup.trim().toUpperCase();
     setRefError('');
     if (!clean) {
-      setRefError('Enter your reference number (e.g. RS-TS-2026-00001).');
+      setRefError('Weka namba yako ya kumbukumbu (mfano: RS-TS-2026-00001).');
       return;
     }
     setRefBusy(true);
     try {
       const record = await getSelectionByRef(clean);
       if (!record) {
-        setRefError(`No selection found for ${clean}. Check the reference number and try again.`);
+        setRefError(`Hakuna rekodi ya mada iliyopatikana kwa ${clean}. Hakiki namba yako.`);
         return;
       }
       if (record.student && record.programme) {
@@ -190,7 +203,7 @@ export default function Welcome({ session, onIdentified }) {
       }
       navigate(`/reference?ref=${encodeURIComponent(record.ref)}`);
     } catch (err) {
-      setRefError(err instanceof ApiError ? err.message : 'Could not look up that reference number.');
+      setRefError(err instanceof ApiError ? err.message : 'Imeshindwa kukagua namba hiyo ya kumbukumbu.');
     } finally {
       setRefBusy(false);
     }
@@ -205,14 +218,14 @@ export default function Welcome({ session, onIdentified }) {
       const result = await identify(form);
       onIdentified(result);
       if (result.existingSelection) {
-        notify('You already hold a title — showing your confirmation.', 'success');
+        notify('Tayari unamiliki mada — inaonyesha uthibitisho wako.', 'success');
         navigate(`/reference?ref=${encodeURIComponent(result.existingSelection.ref)}`);
       } else {
-        notify('Identity captured. The catalogue is open to you.', 'success');
+        notify('Utambulisho umethibitishwa. Orodha ya mada iko wazi sasa.', 'success');
         navigate('/catalogue');
       }
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Something went wrong. Please try again.';
+      const msg = err instanceof ApiError ? err.message : 'Kuna hitilafu imetokea. Tafadhali jaribu tena.';
       setError(msg);
       notify(msg, 'error');
     } finally {
@@ -226,29 +239,33 @@ export default function Welcome({ session, onIdentified }) {
       <section className="hero">
         <div className="container hero-inner">
           <div className="hero-copy">
-            <span className="eyebrow">Mada za Utafiti · Research &amp; Project Titles</span>
+            <span className="eyebrow">{t('hero_eyebrow', 'Mada za Utafiti · Research & Project Titles')}</span>
             <h1>
-              One student, one title — <em>chosen fairly</em>, recorded properly.
+              {t('hero_title_lead', 'Mwanafunzi mmoja, mada moja — ')}
+              <em>{t('hero_title_em', 'kwa haki, uwazi na utaratibu.')}</em>
             </h1>
             <p className="lead">
-              Search the approved Report Safi catalogue, see instantly what is still free, and reserve
-              your research or project title in a single confirmed step. No queues, no double
-              booking, no guessing.
+              {t(
+                'hero_lead',
+                'Tafuta kwenye orodha ya Report Safi iliyoidhinishwa, jua mara moja mada ipi iko wazi, na chagua mada yako ya utafiti au mradi kwa hatua moja iliyothibitishwa. Hakuna foleni, hakuna kurudia mada, hakuna kubahatisha.'
+              )}
             </p>
 
             <div className="hero-actions">
               <Btn variant="gold" size="lg" icon={IconArrowRight} onClick={() => navigate('/catalogue')}>
-                Browse available titles
+                {t('hero_btn_catalogue', 'Angalia mada zilizopo')}
               </Btn>
               <Btn variant="outline" size="lg" icon={IconFileText} onClick={() => navigate('/help')}>
-                How the process works
+                {t('hero_btn_works', 'Jinsi mfumo unavyofanya kazi')}
               </Btn>
             </div>
 
             <p className="hero-note">
               <IconShield size={16} />
-              Availability is confirmed by the portal at the moment you select — never by your
-              browser alone.
+              {t(
+                'hero_note',
+                'Upatikanaji unathibitishwa na mfumo papo hapo unapochagua — siyo kivinjari chako pekee.'
+              )}
             </p>
           </div>
 
@@ -259,10 +276,10 @@ export default function Welcome({ session, onIdentified }) {
       {/* --------------------------------------------------- stat strip */}
       <div className="container">
         <div className="stat-strip">
-          <AnimatedStat value={stats?.titles ?? null} label="Titles in catalogue" />
-          <AnimatedStat value={stats?.available ?? null} label="Available right now" />
-          <AnimatedStat value={stats?.programmes ?? null} label="Programmes open" />
-          <AnimatedStat value={stats?.today ?? null} label="Selections today" />
+          <AnimatedStat value={stats?.titles ?? null} label={t('stat_titles', 'Mada kwenye orodha')} />
+          <AnimatedStat value={stats?.available ?? null} label={t('stat_available', 'Zinazopatikana sasa')} />
+          <AnimatedStat value={stats?.programmes ?? null} label={t('stat_programmes', 'Programu / Kozi wazi')} />
+          <AnimatedStat value={stats?.today ?? null} label={t('stat_today', 'Zilizochaguliwa leo')} />
         </div>
       </div>
 
@@ -272,17 +289,19 @@ export default function Welcome({ session, onIdentified }) {
       <section className="section" id="identify">
         <div className="container two-col">
           <div>
-            <span className="eyebrow">Step 01 · Identification</span>
+            <span className="eyebrow">{t('id_eyebrow', 'Hatua ya 01 · Utambulisho wa Mwanafunzi')}</span>
             <div className="section-head" style={{ marginBottom: 8 }}>
-              <h2>Before you enter the catalogue</h2>
+              <h2>{t('id_heading', 'Kabla hujaingia kwenye orodha ya mada')}</h2>
               <p>
-                The Research Office needs to know who is reserving each title. Have these five
-                details ready — the form takes under a minute.
+                {t(
+                  'id_intro',
+                  'Idara ya utafiti inahitaji kujua ni nani anayehifadhi kila mada. Andaa taarifa hizi sita — fomu inachukua chini ya dakika moja.'
+                )}
               </p>
             </div>
 
             <ul className="need-list">
-              {NEEDS.map((n) => (
+              {needs.map((n) => (
                 <li className="need-item" key={n.title}>
                   <span className="need-icon">
                     <n.icon size={17} />
@@ -296,19 +315,20 @@ export default function Welcome({ session, onIdentified }) {
             </ul>
 
             <Notice tone="warn" icon={IconAlert}>
-              <strong>These details are not identity verification.</strong> In this release they are
-              captured and stored, but they are not checked against the official student
-              register. Do not treat a successful submission as proof of enrolment.
+              <strong>{t('id_disclaimer', 'Taarifa hizi hazithibitishi usajili rasmi wa chuo.')}</strong>
             </Notice>
 
             {session && (
               <div className="notice notice-info" style={{ marginTop: 14 }}>
                 <IconCheck size={17} />
                 <div style={{ flex: 1 }}>
-                  <strong>You are identified as {session.student.names}</strong> ({session.student.regNo}).
+                  <strong>
+                    {t('id_identified_as', 'Umetambuliwa kama')} {session.student.names}
+                  </strong>{' '}
+                  ({session.student.regNo}).
                   <div style={{ marginTop: 10 }}>
                     <button className="btn btn-outline btn-sm" onClick={() => navigate('/catalogue')}>
-                      Continue to the catalogue <IconArrowRight size={15} />
+                      {t('id_continue_cat', 'Endelea kwenye orodha ya mada')} <IconArrowRight size={15} />
                     </button>
                   </div>
                 </div>
@@ -316,12 +336,18 @@ export default function Welcome({ session, onIdentified }) {
             )}
             <form className="ref-lookup-card" onSubmit={openByRef} noValidate>
               <div className="ref-lookup-head">
-                <span className="eyebrow">Already reserved?</span>
-                <h3>Use your reference number to edit supervisor info, details, or title</h3>
+                <span className="eyebrow">{t('ref_lookup_eyebrow', 'Umeshachagua mada tayari?')}</span>
+                <h3>
+                  {t(
+                    'ref_lookup_heading',
+                    'Tumia namba yako ya kumbukumbu (Reference) kurekebisha taarifa au kubadilisha mada'
+                  )}
+                </h3>
                 <p className="small muted">
-                  Enter the reference number you received after reserving (e.g.{' '}
-                  <span className="mono">RS-TS-2026-00001</span>) to edit your supervisor info,
-                  update student details, or select another available title.
+                  {t(
+                    'ref_lookup_text',
+                    'Weka namba ya kumbukumbu uliyopewa ulipochagua mada (mfano: RS-TS-2026-00001) kurekebisha taarifa za msimamizi, chuo au kuchagua mada nyingine iliyo wazi.'
+                  )}
                 </p>
               </div>
               <div className="ref-lookup-row">
@@ -337,7 +363,7 @@ export default function Welcome({ session, onIdentified }) {
                   spellCheck="false"
                 />
                 <Btn type="submit" variant="outline" icon={IconPencil} disabled={refBusy}>
-                  {refBusy ? 'Checking…' : 'Open / Edit'}
+                  {refBusy ? t('ref_lookup_checking', 'Inakagua…') : t('ref_lookup_btn', 'Fungua / Rekebisha')}
                 </Btn>
               </div>
               {refError && (
@@ -350,9 +376,9 @@ export default function Welcome({ session, onIdentified }) {
 
           <form className="form-panel" onSubmit={submit} noValidate>
             <div className="form-panel-head">
-              <span className="eyebrow">Student details</span>
-              <h2>Identify yourself</h2>
-              <p>Registration number · Full names · Supervisor · Active phone · Programme</p>
+              <span className="eyebrow">{t('form_eyebrow', 'Taarifa za mwanafunzi')}</span>
+              <h2>{t('form_heading', 'Jitambulishe')}</h2>
+              <p>{t('form_sub', 'Namba ya usajili · Majina · Chuo · Msimamizi · Simu · Kozi')}</p>
             </div>
 
             <div className="form-panel-body">
@@ -363,11 +389,11 @@ export default function Welcome({ session, onIdentified }) {
               )}
 
               <Field
-                label="Registration number"
+                label={t('form_reg_label', 'Namba ya usajili wa chuo')}
                 required
                 htmlFor="regNo"
                 error={errors.regNo}
-                hint="Example: 03.6773.01.01.2022"
+                hint={t('form_reg_hint', 'Mfano: 03.6773.01.01.2022')}
               >
                 <input
                   id="regNo"
@@ -383,47 +409,74 @@ export default function Welcome({ session, onIdentified }) {
               <div className="field-disclaimer" role="note">
                 <IconAlert size={16} />
                 <div>
-                  <strong>Use your real college registration number.</strong> Enter the exact number
-                  printed on your official student identity card — do not use a fake, guessed, or
-                  another student&rsquo;s registration number.
+                  <strong>{t('form_reg_disclaimer', 'Tumia namba yako halisi ya usajili wa chuo. Weka namba kamili iliyopo kwenye kitambulisho chako rasmi cha chuo — usitumie namba ya kubahatisha au ya mwanafunzi mwingine.')}</strong>
                 </div>
               </div>
 
-              <Field label="Full names" required htmlFor="names" error={errors.names}>
+              <Field
+                label={t('form_names_label', 'Majina kamili')}
+                required
+                htmlFor="names"
+                error={errors.names}
+              >
                 <input
                   id="names"
                   className="inp"
                   value={form.names}
                   onChange={set('names')}
-                  placeholder="Neema Baraka Mushi"
+                  placeholder={t('form_names_placeholder', 'Neema Baraka Mushi')}
                   autoComplete="name"
                 />
               </Field>
 
               <Field
-                label="Supervisor name"
+                label={t('form_inst_label', 'Chuo Kikuu / Taasisi (Dar es Salaam)')}
+                required
+                htmlFor="institution"
+                error={errors.institution}
+                hint={t('form_inst_hint', 'CBE, DMI, NIT, IFM, TIA, UDSM, DIT, MUHAS, n.k.')}
+              >
+                <select
+                  id="institution"
+                  className="select"
+                  value={form.institution}
+                  onChange={set('institution')}
+                >
+                  <option value="">
+                    {t('form_inst_placeholder', '-- Chagua Chuo Kikuu / Taasisi ya Dar es Salaam --')}
+                  </option>
+                  {DAR_ES_SALAAM_UNIVERSITIES.map((u) => (
+                    <option key={u.code} value={u.code}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field
+                label={t('form_supervisor_label', 'Msimamizi wa Utafiti (Supervisor)')}
                 required
                 htmlFor="supervisorName"
                 error={errors.supervisorName}
-                hint="Example: Dr. Asha Mnyamzi"
+                hint={t('form_supervisor_hint', 'Mfano: Dr. Asha Mnyamzi')}
               >
                 <input
                   id="supervisorName"
                   className="inp"
                   value={form.supervisorName}
                   onChange={set('supervisorName')}
-                  placeholder="Dr. Asha Mnyamzi"
+                  placeholder={t('form_supervisor_placeholder', 'Dr. Asha Mnyamzi')}
                   autoComplete="off"
                 />
               </Field>
 
               <div className="form-grid-2">
                 <Field
-                  label="Active phone"
+                  label={t('form_phone_label', 'Namba ya simu inayopatikana')}
                   required
                   htmlFor="phone"
                   error={errors.phone}
-                  hint="0712 345 678"
+                  hint={t('form_phone_placeholder', '0712 345 678')}
                 >
                   <input
                     id="phone"
@@ -437,7 +490,7 @@ export default function Welcome({ session, onIdentified }) {
                 </Field>
 
                 <Field
-                  label="Programme / course"
+                  label={t('form_prog_label', 'Programu / Kozi ya masomo')}
                   required
                   htmlFor="prog"
                   error={errors.programmeId}
@@ -448,7 +501,7 @@ export default function Welcome({ session, onIdentified }) {
                   }
                 >
                   <select id="prog" className="select" value={form.programmeId} onChange={set('programmeId')}>
-                    <option value="">Select programme…</option>
+                    <option value="">{t('form_prog_placeholder', '-- Chagua kozi unayosomea --')}</option>
                     {['Basic Technician Certificate', 'Ordinary Diploma', 'Bachelor Degree'].map(
                       (award) => {
                         const group = programmes.filter((p) => p.award === award);
@@ -470,16 +523,18 @@ export default function Welcome({ session, onIdentified }) {
 
               <div className="form-actions">
                 <Btn type="submit" variant="primary" size="lg" disabled={busy} icon={IconArrowRight}>
-                  {busy ? 'Checking…' : 'Open the catalogue'}
+                  {busy
+                    ? t('form_submitting', 'Inathibitisha…')
+                    : t('form_submit', 'Thibitisha na Uendelee kwenye Orodha ya Mada')}
                 </Btn>
-                <span className="small muted">It takes about a minute.</span>
+                <span className="small muted">Inachukua chini ya dakika 1.</span>
               </div>
 
               <p className="form-footnote">
                 <IconShield size={14} />
-                Submitted once. Keep your reference number after reserving — you can use it anytime
-                to update your details or select another available title, and every change is
-                recorded in the portal.
+                Uthibitisho unahifadhiwa mara moja. Hifadhi namba yako ya kumbukumbu (Reference) —
+                unaweza kuitumia wakati wowote kurekebisha taarifa za msimamizi au kubadilisha mada
+                nyingine iliyo wazi.
               </p>
             </div>
           </form>

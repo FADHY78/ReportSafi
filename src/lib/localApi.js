@@ -146,12 +146,13 @@ export async function getCatalogue({
 }
 
 /** PRD §5.1 — capture identity. Stored, explicitly NOT verified. */
-export async function identify({ regNo, names, phone, supervisorName = '', programmeId }) {
+export async function identify({ regNo, names, phone, supervisorName = '', institution = '', programmeId }) {
   await roundTrip();
   const cleanReg = normReg(regNo);
   const cleanNames = String(names || '').replace(/\s+/g, ' ').trim();
   const cleanPhone = normPhone(phone);
   const cleanSupervisor = String(supervisorName || '').replace(/\s+/g, ' ').trim();
+  const cleanInst = String(institution || '').replace(/\s+/g, ' ').trim();
 
   if (cleanReg.length < 5) throw new ApiError('Enter a valid registration number.', 'validation');
   if (cleanNames.split(' ').filter(Boolean).length < 2)
@@ -174,6 +175,8 @@ export async function identify({ regNo, names, phone, supervisorName = '', progr
       student.phone = cleanPhone;
       if (cleanSupervisor) student.supervisorName = cleanSupervisor;
       else if (student.supervisorName === undefined) student.supervisorName = '';
+      if (cleanInst) student.institution = cleanInst;
+      else if (student.institution === undefined) student.institution = '';
       if (!existing) student.programmeId = programmeId;
       student.updatedAt = now;
     } else {
@@ -183,6 +186,7 @@ export async function identify({ regNo, names, phone, supervisorName = '', progr
         names: cleanNames,
         phone: cleanPhone,
         supervisorName: cleanSupervisor,
+        institution: cleanInst,
         programmeId,
         createdAt: now,
         updatedAt: now,
@@ -307,12 +311,13 @@ export async function getSelectionByRef(ref) {
   return { ...sel, editCount: sel.editCount || 0, editHistory: sel.editHistory || [], title, student, programme };
 }
 
-export async function updateSelectionDetails({ ref, names, phone, supervisorName = '', reason = '' }) {
+export async function updateSelectionDetails({ ref, names, phone, supervisorName = '', institution = '', reason = '' }) {
   await roundTrip();
   const cleanRef = String(ref || '').trim().toUpperCase();
   const cleanNames = String(names || '').replace(/\s+/g, ' ').trim();
   const cleanPhone = normPhone(phone);
   const cleanSupervisor = String(supervisorName || '').replace(/\s+/g, ' ').trim();
+  const cleanInst = String(institution || '').replace(/\s+/g, ' ').trim();
   const cleanReason = String(reason || '').replace(/\s+/g, ' ').trim() || 'Student updated details using reference number';
 
   if (!cleanRef) throw new ApiError('Enter your selection reference number.', 'validation');
@@ -330,12 +335,13 @@ export async function updateSelectionDetails({ ref, names, phone, supervisorName
     if (!student) throw new ApiError('Student record not found.', 'not_found');
 
     const now = new Date().toISOString();
-    const before = `${student.names} · ${student.phone}${student.supervisorName ? ` · Sup: ${student.supervisorName}` : ''}`;
-    const after = `${cleanNames} · ${cleanPhone}${cleanSupervisor ? ` · Sup: ${cleanSupervisor}` : ''}`;
+    const before = `${student.names} · ${student.phone}${student.supervisorName ? ` · Sup: ${student.supervisorName}` : ''}${student.institution ? ` · Inst: ${student.institution}` : ''}`;
+    const after = `${cleanNames} · ${cleanPhone}${cleanSupervisor ? ` · Sup: ${cleanSupervisor}` : ''}${cleanInst ? ` · Inst: ${cleanInst}` : ''}`;
 
     student.names = cleanNames;
     student.phone = cleanPhone;
     student.supervisorName = cleanSupervisor;
+    if (cleanInst) student.institution = cleanInst;
     student.updatedAt = now;
 
     sel.editedAt = now;
@@ -365,10 +371,11 @@ export async function updateSelectionDetails({ ref, names, phone, supervisorName
   });
 }
 
-export async function changeSelectionTitle({ ref, newTitleId, supervisorName = '', reason = '' }) {
+export async function changeSelectionTitle({ ref, newTitleId, supervisorName = '', institution = '', reason = '' }) {
   await roundTrip();
   const cleanRef = String(ref || '').trim().toUpperCase();
   const cleanSupervisor = String(supervisorName || '').replace(/\s+/g, ' ').trim();
+  const cleanInst = String(institution || '').replace(/\s+/g, ' ').trim();
   const cleanReason = String(reason || '').replace(/\s+/g, ' ').trim() || 'Student changed title using reference number';
 
   if (!cleanRef) throw new ApiError('Reference number is required to change your title.', 'validation');
@@ -399,6 +406,10 @@ export async function changeSelectionTitle({ ref, newTitleId, supervisorName = '
     const supervisorChanged = Boolean(cleanSupervisor && student && cleanSupervisor !== (student.supervisorName || ''));
     if (supervisorChanged) {
       student.supervisorName = cleanSupervisor;
+      student.updatedAt = now;
+    }
+    if (cleanInst && student) {
+      student.institution = cleanInst;
       student.updatedAt = now;
     }
 
@@ -1107,6 +1118,7 @@ export async function listStudentsAdmin({
     return {
       ...st,
       supervisorName: st.supervisorName || '',
+      institution: st.institution || '',
       programmeCode: prog?.code || '—',
       programmeName: prog?.name || '—',
       selection: sel
@@ -1137,6 +1149,7 @@ export async function listStudentsAdmin({
         r.regNo.toLowerCase().includes(needle) ||
         r.phone.toLowerCase().includes(needle) ||
         (r.supervisorName || '').toLowerCase().includes(needle) ||
+        (r.institution || '').toLowerCase().includes(needle) ||
         (r.selection?.ref || '').toLowerCase().includes(needle) ||
         (r.programmeCode || '').toLowerCase().includes(needle)
     );
@@ -1159,11 +1172,12 @@ export async function listStudentsAdmin({
   };
 }
 
-export async function updateStudentAdmin({ id, names, phone, supervisorName = '', reason = '', actor }) {
+export async function updateStudentAdmin({ id, names, phone, supervisorName = '', institution = '', reason = '', actor }) {
   if (!actor?.name) throw new ApiError('Sign in to perform this action.', 'unauthorised');
   const cleanNames = String(names || '').replace(/\s+/g, ' ').trim();
   const cleanPhone = normPhone(phone);
   const cleanSupervisor = String(supervisorName || '').replace(/\s+/g, ' ').trim();
+  const cleanInst = String(institution || '').replace(/\s+/g, ' ').trim();
   if (cleanNames.split(' ').filter(Boolean).length < 2)
     throw new ApiError('Enter full names (at least two parts).', 'validation');
   if (!cleanPhone) throw new ApiError('Enter a valid Tanzanian mobile number.', 'validation');
@@ -1174,10 +1188,11 @@ export async function updateStudentAdmin({ id, names, phone, supervisorName = ''
     const student = db.students.find((s) => s.id === id);
     if (!student) throw new ApiError('Student record not found.', 'not_found');
 
-    const before = `${student.names} · ${student.phone} · Sup: ${student.supervisorName || '—'}`;
+    const before = `${student.names} · ${student.phone} · Sup: ${student.supervisorName || '—'}${student.institution ? ` · Inst: ${student.institution}` : ''}`;
     student.names = cleanNames;
     student.phone = cleanPhone;
     student.supervisorName = cleanSupervisor;
+    if (cleanInst) student.institution = cleanInst;
     student.updatedAt = new Date().toISOString();
 
     writeAudit(db, {

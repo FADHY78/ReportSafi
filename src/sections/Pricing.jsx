@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Btn } from '../ui/primitives';
 import { IconCheck, IconArrowRight, IconClipboard, IconGraduation, IconBook } from '../ui/Icons';
 import { useSiteContent } from '../lib/useSiteContent';
+import { useLanguage } from '../lib/i18n';
 import PackageOrderModal from '../components/PackageOrderModal';
 
 const ICONS = {
@@ -17,17 +18,20 @@ const ICONS = {
  */
 export default function Pricing({ session }) {
   const { pricing } = useSiteContent();
+  const { t } = useLanguage();
   const [selectedPlan, setSelectedPlan] = useState(null);
 
   return (
     <section className="section section-alt" id="pricing">
       <div className="container">
         <div className="section-head center-head">
-          <span className="eyebrow">Pricing</span>
-          <h2>One price per report. No subscriptions.</h2>
+          <span className="eyebrow">{t('pricing_eyebrow', 'Bei na Vifurushi')}</span>
+          <h2>{t('pricing_title', 'Gharama za Kitaalamu kwa Kila Ripoti')}</h2>
           <p>
-            Choose the support you need — a proposal, a report, or both together. Selecting a
-            title in the portal itself remains free for every student.
+            {t(
+              'pricing_lead',
+              'Chagua huduma unayohitaji — andiko la utafiti (proposal), ripoti kamili, au vifurushi vyote viwili pamoja. Kuchagua mada kwenye mfumo ni bure kabisa.'
+            )}
           </p>
         </div>
 
@@ -60,7 +64,13 @@ export default function Pricing({ session }) {
                   icon={IconArrowRight}
                   onClick={() => setSelectedPlan(p)}
                 >
-                  {p.cta}
+                  {p.cta === 'Order the package'
+                    ? 'Agiza Kifurushi Kamili'
+                    : p.cta === 'Order a proposal'
+                    ? 'Agiza Proposal Hii'
+                    : p.cta === 'Order a report'
+                    ? 'Agiza Ripoti Hii'
+                    : p.cta}
                 </Btn>
               </article>
             );

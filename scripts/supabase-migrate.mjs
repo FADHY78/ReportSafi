@@ -24,7 +24,8 @@ const functionsSql = fullSchema.slice(markerIdx);
 
 const ddlSql = `
 alter table public.students
-  add column if not exists supervisor_name text not null default '';
+  add column if not exists supervisor_name text not null default '',
+  add column if not exists institution text not null default '';
 
 alter table public.selections
   add column if not exists edited_at timestamptz,

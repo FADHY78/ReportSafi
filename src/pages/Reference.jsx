@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { navigate, useRoute } from '../lib/router';
 import { getSelectionByRef, updateSelectionDetails, ApiError } from '../lib/api';
 import { useToast } from '../lib/toast';
+import { useLanguage } from '../lib/i18n';
+import { DAR_ES_SALAAM_UNIVERSITIES, getInstitutionName } from '../lib/institutions';
 import { Btn, Field, SkeletonRows, Notice, StatusTag } from '../ui/primitives';
 import {
   IconCheck,
@@ -28,8 +30,9 @@ export default function Reference({ onSyncSession }) {
   const [loading, setLoading] = useState(Boolean(ref));
   const [lookupInput, setLookupInput] = useState(ref);
 
+  const { t } = useLanguage();
   const [editBusy, setEditBusy] = useState(false);
-  const [editForm, setEditForm] = useState({ names: '', phone: '', supervisorName: '', reason: '' });
+  const [editForm, setEditForm] = useState({ names: '', phone: '', supervisorName: '', institution: '', reason: '' });
   const [editErrors, setEditErrors] = useState({});
 
   const syncFormFromRecord = (r) => {
@@ -38,6 +41,7 @@ export default function Reference({ onSyncSession }) {
       names: r.student?.names || '',
       phone: r.student?.phone || '',
       supervisorName: r.student?.supervisorName || '',
+      institution: r.student?.institution || '',
       reason: '',
     });
     setEditErrors({});
@@ -75,7 +79,7 @@ export default function Reference({ onSyncSession }) {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(record.ref);
-      notify('Reference number copied.', 'success');
+      notify(t('ref_copied', 'Imenakiliwa!'), 'success');
     } catch {
       notify('Copy not available — write the number down instead.', 'error');
     }
@@ -85,13 +89,13 @@ export default function Reference({ onSyncSession }) {
     e.preventDefault();
     const errs = {};
     if (editForm.names.trim().split(/\s+/).filter(Boolean).length < 2) {
-      errs.names = 'Enter your full names (at least two parts).';
+      errs.names = t('err_names', 'Weka majina yako kamili (angalau majina mawili).');
     }
     if (!editForm.phone.trim()) {
-      errs.phone = 'Enter your active phone number.';
+      errs.phone = t('err_phone', 'Weka namba sahihi ya simu.');
     }
     if (editForm.supervisorName.trim().length < 2) {
-      errs.supervisorName = 'Enter your supervisor name.';
+      errs.supervisorName = t('err_supervisor', 'Weka jina kamili la msimamizi wako.');
     }
     setEditErrors(errs);
     if (Object.keys(errs).length) return;
@@ -103,6 +107,7 @@ export default function Reference({ onSyncSession }) {
         names: editForm.names,
         phone: editForm.phone,
         supervisorName: editForm.supervisorName,
+        institution: editForm.institution,
         reason: editForm.reason,
       });
       setRecord(updated);
@@ -110,9 +115,9 @@ export default function Reference({ onSyncSession }) {
       if (updated?.student && updated?.programme && onSyncSession) {
         onSyncSession({ student: updated.student, programme: updated.programme });
       }
-      notify('Supervisor & student details updated and saved.', 'success');
+      notify('Taarifa za msimamizi na mwanafunzi zimehifadhiwa kikamilifu.', 'success');
     } catch (err) {
-      notify(err instanceof ApiError ? err.message : 'Could not update your details.', 'error');
+      notify(err instanceof ApiError ? err.message : 'Imeshindwa kurekebisha taarifa zako.', 'error');
     } finally {
       setEditBusy(false);
     }
@@ -251,13 +256,17 @@ export default function Reference({ onSyncSession }) {
               <span className="v">{student?.names || '—'}</span>
             </div>
             <div className="detail-row">
-              <span className="k">Registration number</span>
+              <span className="k">Namba ya usajili</span>
               <span className="v mono">{student?.regNo || '—'}</span>
             </div>
             <div className="detail-row">
-              <span className="k">Supervisor name</span>
+              <span className="k">Chuo Kikuu / Taasisi</span>
+              <span className="v">{getInstitutionName(student?.institution) || '—'}</span>
+            </div>
+            <div className="detail-row">
+              <span className="k">Msimamizi wa Utafiti (Supervisor)</span>
               <span className="v">
-                {student?.supervisorName || <span className="muted">Not set — add below</span>}
+                {student?.supervisorName || <span className="muted">Haijawekwa — jaza hapa chini</span>}
               </span>
             </div>
             <div className="detail-row">
@@ -330,11 +339,31 @@ export default function Reference({ onSyncSession }) {
               </p>
 
               <Field
-                label="Supervisor name"
+                label="Chuo Kikuu / Taasisi (Dar es Salaam)"
+                htmlFor="ed-inst"
+                hint="CBE, DMI, NIT, IFM, TIA, UDSM, DIT, MUHAS, n.k."
+              >
+                <select
+                  id="ed-inst"
+                  className="select"
+                  value={editForm.institution}
+                  onChange={(e) => setEditForm((f) => ({ ...f, institution: e.target.value }))}
+                >
+                  <option value="">-- Chagua Chuo Kikuu / Taasisi ya Dar es Salaam --</option>
+                  {DAR_ES_SALAAM_UNIVERSITIES.map((u) => (
+                    <option key={u.code} value={u.code}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field
+                label="Msimamizi wa Utafiti (Supervisor)"
                 required
                 htmlFor="ed-sup"
                 error={editErrors.supervisorName}
-                hint="Example: Dr. Asha Mnyamzi"
+                hint="Mfano: Dr. Asha Mnyamzi"
               >
                 <input
                   id="ed-sup"

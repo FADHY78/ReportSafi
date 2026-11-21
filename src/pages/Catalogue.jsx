@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, navigate, useRoute } from '../lib/router';
 import { getCatalogue, getProgrammes, ApiError } from '../lib/api';
 import { useToast } from '../lib/toast';
+import { useLanguage } from '../lib/i18n';
 import { Btn, Pager, Empty, SkeletonRows, StatusTag, Notice } from '../ui/primitives';
 import {
   IconSearch,
@@ -34,6 +35,7 @@ function Stat({ label, value, tone, hint }) {
 
 export default function Catalogue({ session, onResetSession }) {
   const notify = useToast();
+  const { t } = useLanguage();
   const { query } = useRoute();
   const editRef = (query?.get('editRef') || '').trim().toUpperCase();
 
@@ -140,43 +142,43 @@ export default function Catalogue({ session, onResetSession }) {
         <header className="cat-hero">
           <div className="cat-hero-copy">
             <nav className="cat-crumb" aria-label="Breadcrumb">
-              <Link to="/">Home</Link>
+              <Link to="/">{t('nav_home', 'Mwanzo')}</Link>
               <IconChevronRight size={13} />
-              <span>Catalogue</span>
+              <span>{t('nav_catalogue', 'Mada za Utafiti')}</span>
             </nav>
-            <span className="eyebrow">Step 02 · Title selection</span>
-            <h1>{isEditMode ? 'Select a new research title' : 'Find your research title'}</h1>
+            <span className="eyebrow">{t('id_eyebrow', 'Hatua ya 02 · Uchaguzi wa Mada')}</span>
+            <h1>{isEditMode ? 'Chagua mada mpya ya utafiti' : t('cat_title', 'Tafuta mada yako ya utafiti')}</h1>
             <p className="lead">
               {isEditMode
-                ? `Changing title for reference ${held.ref}. Pick any available title below to replace your current selection.`
+                ? `Unabadilisha mada kwa namba ya kumbukumbu ${held.ref}. Chagua mada yoyote iliyo wazi hapa chini kuchukua nafasi ya mada yako ya sasa.`
                 : held
-                ? 'You already hold a title. Use your reference number below if you want to edit your details or select another available title.'
-                : 'Search and compare approved titles. Selecting a title does not reserve it — the reservation is confirmed on the next screen.'}
+                ? 'Tayari unamiliki mada moja. Tumia namba yako ya kumbukumbu hapa chini ikiwa unataka kurekebisha taarifa au kubadilisha mada nyingine iliyo wazi.'
+                : 'Tafuta na linganisha mada zilizoidhinishwa. Kuchagua mada bado haihifadhi moja kwa moja — utathibitisha hatua ya mwisho kwenye ukurasa unaofuata.'}
             </p>
             <div className="cat-programme-chip">
               <IconGraduation size={16} />
-              <span>{programme?.name || 'Your programme'}</span>
+              <span>{programme?.name || 'Programu yako'}</span>
               <b className="mono">{programme?.code || '—'}</b>
             </div>
           </div>
 
           <div className="cat-kpis" aria-label="Catalogue summary">
             <Stat
-              label="In catalogue"
+              label={t('cat_filter_all', 'Mada zote')}
               value={data ? data.catalogueTotal.toLocaleString('en-GB') : '—'}
-              hint="Approved titles"
+              hint="Mada zilizoidhinishwa"
             />
             <Stat
-              label="Available"
+              label={t('cat_filter_avail', 'Zinazopatikana')}
               value={data ? data.available.toLocaleString('en-GB') : '—'}
               tone="green"
-              hint="Open to select"
+              hint="Ziko wazi kuchaguliwa"
             />
             <Stat
-              label="Reserved"
+              label={t('cat_filter_taken', 'Zilizochukuliwa')}
               value={data ? data.unavailable.toLocaleString('en-GB') : '—'}
               tone="red"
-              hint="Already committed"
+              hint="Zimekwishachaguliwa"
             />
           </div>
         </header>
@@ -247,7 +249,7 @@ export default function Catalogue({ session, onResetSession }) {
                       setQ(e.target.value);
                       setPage(1);
                     }}
-                    placeholder="Search by keyword, title or category…"
+                    placeholder={t('cat_search_placeholder', 'Tafuta kwa mada, nambari ya mada, au maneno muhimu…')}
                     aria-label="Search titles"
                   />
                   {q && (

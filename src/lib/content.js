@@ -15,15 +15,17 @@ export const DEFAULT_SITE_CONTENT = {
     hours: 'Mon – Fri, 08:00 – 17:00',
   },
   institutions: [
+    'CBE',
+    'DMI',
+    'NIT',
+    'IFM',
+    'TIA',
     'UDSM',
     'DIT',
-    'TIA',
     'MUHAS',
-    'Mzumbe',
-    'IFM',
     'Ardhi',
-    'SAUT',
-    'DMI',
+    'OUT',
+    'ISW',
   ],
   pricing: [
     {

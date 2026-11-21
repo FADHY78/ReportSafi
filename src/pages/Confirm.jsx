@@ -8,11 +8,14 @@ import {
   ApiError,
 } from '../lib/api';
 import { useToast } from '../lib/toast';
+import { useLanguage } from '../lib/i18n';
+import { DAR_ES_SALAAM_UNIVERSITIES, getInstitutionName } from '../lib/institutions';
 import { Btn, Field, Notice, SkeletonRows } from '../ui/primitives';
 import { IconArrowLeft, IconCheck, IconAlert, IconLock, IconShield, IconRefresh } from '../ui/Icons';
 
 export default function Confirm({ session, onSyncSession }) {
   const notify = useToast();
+  const { t } = useLanguage();
   const { query } = useRoute();
   const titleId = query?.get('title') || '';
   const editRef = (query?.get('editRef') || '').trim().toUpperCase();
@@ -20,6 +23,7 @@ export default function Confirm({ session, onSyncSession }) {
   const [title, setTitle] = useState(null);
   const [currentSelection, setCurrentSelection] = useState(null);
   const [supervisorName, setSupervisorName] = useState(session?.student?.supervisorName || '');
+  const [institution, setInstitution] = useState(session?.student?.institution || '');
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -50,13 +54,18 @@ export default function Confirm({ session, onSyncSession }) {
         } else if (student?.supervisorName) {
           setSupervisorName(student.supervisorName);
         }
+        if (sel?.student?.institution) {
+          setInstitution(sel.student.institution);
+        } else if (student?.institution) {
+          setInstitution(student.institution);
+        }
         setLoading(false);
       })
       .catch(() => alive && setLoading(false));
     return () => {
       alive = false;
     };
-  }, [titleId, editRef, student?.programmeId, student?.supervisorName]);
+  }, [titleId, editRef, student?.programmeId, student?.supervisorName, student?.institution]);
 
   const confirm = async () => {
     if (!title || busy) return;
@@ -68,20 +77,21 @@ export default function Confirm({ session, onSyncSession }) {
           ref: editRef,
           newTitleId: title.id,
           supervisorName,
+          institution,
           reason,
         });
         if (updated?.student && updated?.programme && onSyncSession) {
           onSyncSession({ student: updated.student, programme: updated.programme });
         }
-        notify('Title changed successfully and recorded in the database.', 'success');
+        notify('Mada imebadilishwa kikamilifu na kuhifadhiwa kwenye mfumo.', 'success');
         navigate(`/reference?ref=${encodeURIComponent(updated.ref)}`);
       } else {
         const selection = await reserve({ studentId: student.id, titleId: title.id });
-        notify('Title reserved successfully.', 'success');
+        notify('Mada imehifadhiwa kikamilifu.', 'success');
         navigate(`/reference?ref=${encodeURIComponent(selection.ref)}`);
       }
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'The selection could not be completed.';
+      const msg = err instanceof ApiError ? err.message : 'Uchaguzi haukuweza kukamilika.';
       setError(msg);
       notify(msg, 'error');
       if (err.code === 'unavailable' || err.code === 'already_selected') {
@@ -102,13 +112,13 @@ export default function Confirm({ session, onSyncSession }) {
     <div className="container">
       <div className="cat-head">
         <span className="eyebrow">
-          {isEditMode ? `Change Title · ${editRef}` : 'Step 03 · Confirmation'}
+          {isEditMode ? `Badilisha Mada · ${editRef}` : t('id_eyebrow', 'Hatua ya 03 · Uthibitisho')}
         </span>
-        <h1>{isEditMode ? 'Confirm your new title' : 'Confirm this title for yourself'}</h1>
+        <h1>{isEditMode ? t('cat_btn_swap', 'Thibitisha mada yako mpya') : t('confirm_title', 'Thibitisha uchaguzi wa mada yako')}</h1>
         <p className="lead" style={{ maxWidth: '62ch' }}>
           {isEditMode
-            ? 'Review the title change below. Confirming frees your previous title immediately, reserves the new title under the same reference number, and logs the edit.'
-            : 'Check every field below. Pressing confirm sends the request to the portal, which checks availability one final time before it commits.'}
+            ? 'Kagua mabadiliko ya mada hapa chini. Ukithibitisha, mada yako ya awali itaachiwa wazi mara moja kwa ajili ya wanafunzi wengine, na mada mpya itahifadhiwa chini ya namba yako ya kumbukumbu.'
+            : 'Kagua taarifa zote hapa chini. Kubonyeza thibitisha kunatuma maombi kwenye mfumo, ambao unakagua upatikanaji mara ya mwisho kabla ya kuhifadhi rasmi.'}
         </p>
       </div>
 
@@ -121,10 +131,10 @@ export default function Confirm({ session, onSyncSession }) {
       <div className="panel" style={{ marginTop: 16 }}>
         <div className="panel-head">
           <span className="panel-title">
-            <IconShield size={17} /> {isEditMode ? 'Title change summary' : 'Selection summary'}
+            <IconShield size={17} /> {isEditMode ? 'Muhtasari wa mabadiliko ya mada' : 'Muhtasari wa uchaguzi'}
           </span>
           <span className="tag tag-amber">
-            {isEditMode ? `Editing ${editRef}` : 'Not yet reserved'}
+            {isEditMode ? `Marekebisho ya ${editRef}` : 'Bado haijathibitishwa'}
           </span>
         </div>
 
@@ -133,13 +143,13 @@ export default function Confirm({ session, onSyncSession }) {
             <SkeletonRows rows={3} />
           ) : !title ? (
             <Notice tone="error" icon={IconAlert}>
-              That title could not be found in your programme.{' '}
+              Mada hiyo haikupatikana kwenye programu yako.{' '}
               <button
                 className="btn btn-outline btn-sm"
                 style={{ marginLeft: 8 }}
                 onClick={() => navigate(backTarget)}
               >
-                Back to catalogue
+                Rudi kwenye orodha ya mada
               </button>
             </Notice>
           ) : (
@@ -147,7 +157,7 @@ export default function Confirm({ session, onSyncSession }) {
               <div className="review-grid">
                 {isEditMode && currentSelection?.title && (
                   <div className="review-item wide">
-                    <div className="k">Previous title (will be released)</div>
+                    <div className="k">Mada ya awali (itaachiwa wazi)</div>
                     <div className="v small muted" style={{ lineHeight: 1.5 }}>
                       <span className="mono">{currentSelection.title.code}</span> —{' '}
                       {currentSelection.title.text}
@@ -155,37 +165,41 @@ export default function Confirm({ session, onSyncSession }) {
                   </div>
                 )}
                 <div className="review-item wide">
-                  <div className="k">{isEditMode ? 'New title to reserve' : 'Title to be reserved'}</div>
+                  <div className="k">{isEditMode ? 'Mada mpya itakayohifadhiwa' : 'Mada itakayohifadhiwa'}</div>
                   <div className="v" style={{ fontFamily: 'var(--serif)', fontSize: '1.08rem', lineHeight: 1.5 }}>
                     {title.text}
                   </div>
                 </div>
                 <div className="review-item">
-                  <div className="k">Title code</div>
+                  <div className="k">Nambari ya mada</div>
                   <div className="v mono">{title.code}</div>
                 </div>
                 <div className="review-item">
-                  <div className="k">Category</div>
+                  <div className="k">Fani / Kipengele</div>
                   <div className="v">{title.category}</div>
                 </div>
                 <div className="review-item">
-                  <div className="k">Student</div>
+                  <div className="k">Mwanafunzi</div>
                   <div className="v">{student.names}</div>
                 </div>
                 <div className="review-item">
-                  <div className="k">Registration number</div>
+                  <div className="k">Namba ya usajili</div>
                   <div className="v mono">{student.regNo}</div>
                 </div>
                 <div className="review-item">
-                  <div className="k">Supervisor name</div>
-                  <div className="v">{student.supervisorName || '—'}</div>
+                  <div className="k">Chuo Kikuu / Taasisi</div>
+                  <div className="v">{getInstitutionName(student.institution || institution) || '—'}</div>
                 </div>
                 <div className="review-item">
-                  <div className="k">Phone number</div>
+                  <div className="k">Msimamizi wa Utafiti (Supervisor)</div>
+                  <div className="v">{student.supervisorName || supervisorName || '—'}</div>
+                </div>
+                <div className="review-item">
+                  <div className="k">Namba ya simu</div>
                   <div className="v mono">{student.phone}</div>
                 </div>
                 <div className="review-item wide">
-                  <div className="k">Programme</div>
+                  <div className="k">Programu / Kozi</div>
                   <div className="v">
                     {programme?.code} — {programme?.name}
                   </div>
@@ -195,9 +209,29 @@ export default function Confirm({ session, onSyncSession }) {
               {isEditMode && (
                 <div className="form-grid-2" style={{ marginTop: 18 }}>
                   <Field
-                    label="Supervisor name"
+                    label="Chuo Kikuu / Taasisi (Dar es Salaam)"
+                    htmlFor="change-inst"
+                    hint="Badilisha chuo chako kama kimebadilika"
+                  >
+                    <select
+                      id="change-inst"
+                      className="select"
+                      value={institution}
+                      onChange={(e) => setInstitution(e.target.value)}
+                    >
+                      <option value="">-- Chagua Chuo Kikuu / Taasisi --</option>
+                      {DAR_ES_SALAAM_UNIVERSITIES.map((u) => (
+                        <option key={u.code} value={u.code}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field
+                    label="Msimamizi wa Utafiti (Supervisor)"
                     htmlFor="change-sup"
-                    hint="Edit your supervisor info if it has changed"
+                    hint="Rekebisha jina la msimamizi kama limebadilika"
                   >
                     <input
                       id="change-sup"
@@ -207,17 +241,18 @@ export default function Confirm({ session, onSyncSession }) {
                       placeholder="Dr. Asha Mnyamzi"
                     />
                   </Field>
+
                   <Field
-                    label="Reason for changing title (optional)"
+                    label="Sababu ya kubadilisha mada (siyo lazima)"
                     htmlFor="change-reason"
-                    hint="Recorded in the database and visible to administrators"
+                    hint="Inarekodiwa kwenye mfumo na kuonekana na msimamizi"
                   >
                     <input
                       id="change-reason"
                       className="inp"
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      placeholder="e.g. Supervisor advised selecting a more specific topic"
+                      placeholder="Mfano: Ushauri wa msimamizi kubadili mlengo wa mada"
                     />
                   </Field>
                 </div>
@@ -226,15 +261,15 @@ export default function Confirm({ session, onSyncSession }) {
               <Notice tone={isEditMode ? 'info' : 'warn'} icon={isEditMode ? IconRefresh : IconLock}>
                 {isEditMode ? (
                   <>
-                    <strong>Your reference number stays {editRef}.</strong> Your previous title will
-                    become available for other students immediately, and both the old and new titles
-                    will be recorded in your edit history.
+                    <strong>Namba yako ya kumbukumbu inabaki ile ile: {editRef}.</strong> Mada yako ya
+                    awali itaachiwa wazi kwa wanafunzi wengine mara moja, na mada zote mbili zitarekodiwa
+                    kwenye historia ya mabadiliko.
                   </>
                 ) : (
                   <>
-                    <strong>Keep your reference number after confirming.</strong> One student holds
-                    one active title at a time — if you ever need to edit your details or switch to
-                    another available title, you can use your reference number to do so.
+                    <strong>Hifadhi namba yako ya kumbukumbu baada ya kuthibitisha.</strong> Mwanafunzi
+                    mmoja anamiliki mada moja kwa wakati mmoja — ukitaka kurekebisha taarifa au kubadilisha
+                    mada nyingine iliyo wazi, utatumia namba hii.
                   </>
                 )}
               </Notice>
@@ -248,21 +283,20 @@ export default function Confirm({ session, onSyncSession }) {
                   disabled={busy}
                 >
                   {busy
-                    ? 'Saving with the portal…'
+                    ? 'Inathibitisha kwenye mfumo…'
                     : isEditMode
-                    ? 'Confirm title change'
-                    : 'Confirm selection'}
+                    ? 'Thibitisha mabadiliko ya mada'
+                    : 'Thibitisha na hifadhi mada'}
                 </Btn>
                 <Btn variant="outline" size="lg" icon={IconArrowLeft} onClick={() => navigate(backTarget)}>
-                  Go back and browse
+                  Rudi kwenye orodha ya mada
                 </Btn>
               </div>
 
               <p className="form-footnote">
                 <IconShield size={14} />
-                The portal re-checks that this title is still free at the moment you confirm. If
-                another student wins the race you will be told immediately and returned to the
-                catalogue.
+                Mfumo unakagua tena kwamba mada bado iko wazi papo hapo unapothibitisha. Ikiwa mwanafunzi
+                mwingine atawahi kukamilisha kabla yako, utaarifiwa mara moja na kurudishwa kwenye orodha ya mada.
               </p>
             </>
           )}

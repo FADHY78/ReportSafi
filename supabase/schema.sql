@@ -68,6 +68,7 @@ create table public.students (
   names text not null,
   phone text not null,
   supervisor_name text not null default '',
+  institution text not null default '',
   programme_id text not null references public.programmes(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -295,13 +296,15 @@ $$;
 
 create or replace function public.rs_student_json(
   p_id text, p_reg_no text, p_names text, p_phone text, p_programme_id text,
-  p_created_at timestamptz, p_updated_at timestamptz, p_supervisor_name text default ''
+  p_created_at timestamptz, p_updated_at timestamptz, p_supervisor_name text default '',
+  p_institution text default ''
 )
 returns jsonb language sql immutable
 as $$
   select jsonb_build_object(
     'id', p_id, 'regNo', p_reg_no, 'names', p_names, 'phone', p_phone,
     'supervisorName', coalesce(p_supervisor_name, ''),
+    'institution', coalesce(p_institution, ''),
     'programmeId', p_programme_id,
     'createdAt', to_jsonb(p_created_at), 'updatedAt', to_jsonb(p_updated_at)
   );
@@ -365,7 +368,8 @@ as $$
       t.id, t.code, t.text, t.category, t.programme_id, t.status, t.created_at, false, null
     ) end,
     'student', case when st.id is null then null else public.rs_student_json(
-      st.id, st.reg_no, st.names, st.phone, st.programme_id, st.created_at, st.updated_at, st.supervisor_name
+      st.id, st.reg_no, st.names, st.phone, st.programme_id, st.created_at, st.updated_at, st.supervisor_name,
+      st.institution
     ) end,
     'programme', case when p.id is null then null else public.rs_programme_json(
       p.id, p.code, p.name, p.award, p.department, p.status, p.title_count, p.categories
@@ -584,6 +588,7 @@ declare
   v_names text := rs_clean(p_payload->>'names');
   v_phone text := coalesce(p_payload->>'phone', '');
   v_supervisor text := rs_clean(p_payload->>'supervisorName');
+  v_institution text := rs_clean(p_payload->>'institution');
   v_programme_id text := p_payload->>'programmeId';
   v_student_id text;
   v_selection_id text;
@@ -607,8 +612,8 @@ begin
 
   if v_student_id is null then
     v_student_id := coalesce(p_payload->>'studentId', 'stu-' || substr(md5(random()::text), 1, 10));
-    insert into students(id, reg_no, names, phone, supervisor_name, programme_id, created_at, updated_at)
-    values (v_student_id, v_reg, v_names, v_phone, v_supervisor, v_programme_id, now(), now());
+    insert into students(id, reg_no, names, phone, supervisor_name, institution, programme_id, created_at, updated_at)
+    values (v_student_id, v_reg, v_names, v_phone, v_supervisor, v_institution, v_programme_id, now(), now());
   else
     select id into v_selection_id from selections
     where student_id = v_student_id and status = 'active' limit 1;
@@ -617,6 +622,7 @@ begin
     set names = v_names,
         phone = v_phone,
         supervisor_name = case when v_supervisor <> '' then v_supervisor else supervisor_name end,
+        institution = case when v_institution <> '' then v_institution else institution end,
         updated_at = now(),
         programme_id = case when v_selection_id is null then v_programme_id else programme_id end
     where id = v_student_id;
@@ -629,7 +635,7 @@ begin
     'student', rs_student_json(
       v_student.id, v_student.reg_no, v_student.names, v_student.phone,
       v_student.programme_id, v_student.created_at, v_student.updated_at,
-      v_student.supervisor_name
+      v_student.supervisor_name, v_student.institution
     ),
     'programme', (select rs_programme_json(
       p.id, p.code, p.name, p.award, p.department, p.status, p.title_count, p.categories
@@ -706,6 +712,7 @@ declare
   v_names text := rs_clean(p_payload->>'names');
   v_phone text := coalesce(p_payload->>'phone', '');
   v_supervisor text := rs_clean(p_payload->>'supervisorName');
+  v_institution text := rs_clean(p_payload->>'institution');
   v_reason text := coalesce(nullif(rs_clean(p_payload->>'reason'), ''), 'Student updated details using reference number');
   v_sel selections%rowtype;
   v_student students%rowtype;
@@ -731,14 +738,17 @@ begin
   if not found then perform rs_fail('not_found', 'Student record not found.'); end if;
 
   v_before := v_student.names || ' · ' || v_student.phone ||
-    case when coalesce(v_student.supervisor_name, '') <> '' then ' · Sup: ' || v_student.supervisor_name else '' end;
+    case when coalesce(v_student.supervisor_name, '') <> '' then ' · Sup: ' || v_student.supervisor_name else '' end ||
+    case when coalesce(v_student.institution, '') <> '' then ' · Inst: ' || v_student.institution else '' end;
   v_after := v_names || ' · ' || v_phone ||
-    case when v_supervisor <> '' then ' · Sup: ' || v_supervisor else '' end;
+    case when v_supervisor <> '' then ' · Sup: ' || v_supervisor else '' end ||
+    case when v_institution <> '' then ' · Inst: ' || v_institution else '' end;
 
   update students set
     names = v_names,
     phone = v_phone,
     supervisor_name = v_supervisor,
+    institution = case when v_institution <> '' then v_institution else institution end,
     updated_at = now()
   where id = v_student.id;
 
@@ -775,6 +785,7 @@ declare
   v_ref text := upper(btrim(coalesce(p_payload->>'ref', '')));
   v_new_title_id text := coalesce(p_payload->>'newTitleId', '');
   v_supervisor text := rs_clean(p_payload->>'supervisorName');
+  v_institution text := rs_clean(p_payload->>'institution');
   v_reason text := coalesce(nullif(rs_clean(p_payload->>'reason'), ''), 'Student changed title using reference number');
   v_sel selections%rowtype;
   v_student students%rowtype;
@@ -807,8 +818,13 @@ begin
     perform rs_fail('unavailable', 'This title has just been taken by another student.');
   end if;
 
-  if v_supervisor <> '' and v_supervisor is distinct from coalesce(v_student.supervisor_name, '') then
-    update students set supervisor_name = v_supervisor, updated_at = now() where id = v_student.id;
+  if (v_supervisor <> '' and v_supervisor is distinct from coalesce(v_student.supervisor_name, ''))
+     or (v_institution <> '' and v_institution is distinct from coalesce(v_student.institution, '')) then
+    update students set
+      supervisor_name = case when v_supervisor <> '' then v_supervisor else supervisor_name end,
+      institution = case when v_institution <> '' then v_institution else institution end,
+      updated_at = now()
+    where id = v_student.id;
   end if;
 
   v_entry := jsonb_build_object(
@@ -1552,6 +1568,7 @@ begin
       and (coalesce(p_q, '') = '' or lower(st.names) like v_needle
            or lower(st.reg_no) like v_needle or lower(st.phone) like v_needle
            or lower(coalesce(st.supervisor_name, '')) like v_needle
+           or lower(coalesce(st.institution, '')) like v_needle
            or lower(coalesce(s.ref, '')) like v_needle
            or lower(coalesce(p.code, '')) like v_needle)
   )
@@ -1580,6 +1597,7 @@ begin
       and (coalesce(p_q, '') = '' or lower(st.names) like v_needle
            or lower(st.reg_no) like v_needle or lower(st.phone) like v_needle
            or lower(coalesce(st.supervisor_name, '')) like v_needle
+           or lower(coalesce(st.institution, '')) like v_needle
            or lower(coalesce(s.ref, '')) like v_needle
            or lower(coalesce(p.code, '')) like v_needle)
     order by st.updated_at desc
@@ -1591,6 +1609,7 @@ begin
     'names', b.names,
     'phone', b.phone,
     'supervisorName', coalesce(b.supervisor_name, ''),
+    'institution', coalesce(b.institution, ''),
     'programmeId', b.programme_id,
     'programmeCode', b.prog_code,
     'programmeName', b.prog_name,
@@ -1627,6 +1646,7 @@ declare
   v_names text := rs_clean(p_payload->>'names');
   v_phone text := rs_clean(p_payload->>'phone');
   v_supervisor text := rs_clean(p_payload->>'supervisorName');
+  v_institution text := rs_clean(p_payload->>'institution');
   v_reason text := coalesce(nullif(rs_clean(p_payload->>'reason'), ''), 'Admin updated student record');
   v_row public.students%rowtype;
   v_updated public.students%rowtype;
@@ -1642,6 +1662,7 @@ begin
     names = v_names,
     phone = v_phone,
     supervisor_name = v_supervisor,
+    institution = case when v_institution <> '' then v_institution else institution end,
     updated_at = now()
   where id = v_id
   returning * into v_updated;
@@ -1651,13 +1672,14 @@ begin
     'Student', v_row.reg_no,
     'Updated student ' || v_row.reg_no,
     v_reason,
-    v_row.names || ' · ' || v_row.phone || ' · Sup: ' || coalesce(nullif(v_row.supervisor_name, ''), '—'),
-    v_names || ' · ' || v_phone || ' · Sup: ' || coalesce(nullif(v_supervisor, ''), '—')
+    v_row.names || ' · ' || v_row.phone || ' · Sup: ' || coalesce(nullif(v_row.supervisor_name, ''), '—') || case when coalesce(v_row.institution, '') <> '' then ' · Inst: ' || v_row.institution else '' end,
+    v_names || ' · ' || v_phone || ' · Sup: ' || coalesce(nullif(v_supervisor, ''), '—') || case when v_institution <> '' then ' · Inst: ' || v_institution else '' end
   );
   perform rs_touch();
   return rs_student_json(
     v_updated.id, v_updated.reg_no, v_updated.names, v_updated.phone,
-    v_updated.programme_id, v_updated.created_at, v_updated.updated_at, v_updated.supervisor_name
+    v_updated.programme_id, v_updated.created_at, v_updated.updated_at,
+    v_updated.supervisor_name, v_updated.institution
   );
 end;
 $$;

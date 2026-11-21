@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRoute, navigate } from './lib/router';
 import { goSection } from './lib/scroll';
 import { ToastProvider, useToast } from './lib/toast';
+import { LanguageProvider } from './lib/i18n';
 import SiteContentProvider from './lib/siteContent';
 import { getSelectionForStudent, getSelectionByRef, subscribe } from './lib/api';
 
@@ -177,10 +178,12 @@ function Shell() {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <SiteContentProvider>
-        <Shell />
-      </SiteContentProvider>
-    </ToastProvider>
+    <LanguageProvider>
+      <ToastProvider>
+        <SiteContentProvider>
+          <Shell />
+        </SiteContentProvider>
+      </ToastProvider>
+    </LanguageProvider>
   );
 }

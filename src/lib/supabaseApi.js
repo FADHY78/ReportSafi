@@ -102,7 +102,7 @@ export async function getCatalogue({
   });
 }
 
-export async function identify({ regNo, names, phone, supervisorName = '', programmeId }) {
+export async function identify({ regNo, names, phone, supervisorName = '', institution = '', programmeId }) {
   const cleanPhone = normPhone(phone);
   if (!cleanPhone) {
     throw new ApiError('Enter a valid Tanzanian mobile number (e.g. 0712 345 678).', 'validation');
@@ -114,6 +114,7 @@ export async function identify({ regNo, names, phone, supervisorName = '', progr
       names,
       phone: cleanPhone,
       supervisorName: String(supervisorName || '').trim(),
+      institution: String(institution || '').trim(),
       programmeId,
     },
   });
@@ -141,7 +142,7 @@ export async function getSelectionByRef(ref) {
   return call('rs_selection_by_ref', { p_ref: ref });
 }
 
-export async function updateSelectionDetails({ ref, names, phone, supervisorName = '', reason = '' }) {
+export async function updateSelectionDetails({ ref, names, phone, supervisorName = '', institution = '', reason = '' }) {
   const cleanPhone = normPhone(phone);
   if (!cleanPhone) {
     throw new ApiError('Enter a valid Tanzanian mobile number (e.g. 0712 345 678).', 'validation');
@@ -152,17 +153,19 @@ export async function updateSelectionDetails({ ref, names, phone, supervisorName
       names,
       phone: cleanPhone,
       supervisorName: String(supervisorName || '').trim(),
+      institution: String(institution || '').trim(),
       reason: String(reason || '').trim(),
     },
   });
 }
 
-export async function changeSelectionTitle({ ref, newTitleId, supervisorName = '', reason = '' }) {
+export async function changeSelectionTitle({ ref, newTitleId, supervisorName = '', institution = '', reason = '' }) {
   return call('rs_change_selection_title', {
     p_payload: {
       ref: String(ref || '').trim().toUpperCase(),
       newTitleId,
       supervisorName: String(supervisorName || '').trim(),
+      institution: String(institution || '').trim(),
       reason: String(reason || '').trim(),
     },
   });
@@ -379,7 +382,7 @@ export async function listStudentsAdmin({
   });
 }
 
-export async function updateStudentAdmin({ id, names, phone, supervisorName = '', reason = '', actor }) {
+export async function updateStudentAdmin({ id, names, phone, supervisorName = '', institution = '', reason = '', actor }) {
   const cleanPhone = normPhone(phone);
   if (!cleanPhone) {
     throw new ApiError('Enter a valid Tanzanian mobile number (e.g. 0712 345 678).', 'validation');
@@ -390,6 +393,7 @@ export async function updateStudentAdmin({ id, names, phone, supervisorName = ''
       names,
       phone: cleanPhone,
       supervisorName: String(supervisorName || '').trim(),
+      institution: String(institution || '').trim(),
       reason,
       actor,
     },

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createOrder, getProgrammes, ApiError } from '../lib/api';
 import { useSiteContent } from '../lib/useSiteContent';
 import { useToast } from '../lib/toast';
+import { DAR_ES_SALAAM_UNIVERSITIES } from '../lib/institutions';
 import { normPhone, normReg, phoneDisplay } from '../lib/utils';
 import { Btn, Field, Modal, Notice } from '../ui/primitives';
 import {
@@ -30,7 +31,7 @@ function buildInitialForm(selectedPackage, packages, session) {
     regNo: session?.student?.regNo || '',
     phone: session?.student?.phone || '',
     supervisorName: session?.student?.supervisorName || '',
-    institution: '',
+    institution: session?.student?.institution || '',
     programme: progLabel,
     title: session?.existingSelection?.title?.text || '',
     selectionRef: session?.existingSelection?.ref || '',
@@ -61,7 +62,7 @@ function formatOrderMessage(order) {
 }
 
 export default function PackageOrderModal({ open, selectedPackage, packages = [], session, onClose }) {
-  const { contact, institutions } = useSiteContent();
+  const { contact } = useSiteContent();
   const notify = useToast();
 
   const [programmes, setProgrammes] = useState([]);
@@ -93,11 +94,6 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
     () => packages.find((p) => p.name === form.packageName) || selectedPackage || packages[0] || null,
     [packages, form.packageName, selectedPackage]
   );
-
-  const institutionOptions = useMemo(() => {
-    const set = new Set(['CBE', ...(institutions || [])]);
-    return Array.from(set);
-  }, [institutions]);
 
   const setField = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
@@ -407,23 +403,23 @@ export default function PackageOrderModal({ open, selectedPackage, packages = []
 
           <div className="form-grid-2">
             <Field
-              label="College / institution"
+              label="Chuo Kikuu / Taasisi (Dar es Salaam)"
               htmlFor="order-inst"
-              hint="Optional — e.g. CBE, IFM, UDSM, TIA"
+              hint="CBE, DMI, NIT, IFM, TIA, UDSM, DIT, MUHAS, n.k."
             >
-              <input
+              <select
                 id="order-inst"
-                className="inp"
-                list="order-institutions"
+                className="select"
                 value={form.institution}
                 onChange={setField('institution')}
-                placeholder="CBE"
-              />
-              <datalist id="order-institutions">
-                {institutionOptions.map((inst) => (
-                  <option key={inst} value={inst} />
+              >
+                <option value="">-- Chagua Chuo Kikuu / Taasisi ya Dar es Salaam --</option>
+                {DAR_ES_SALAAM_UNIVERSITIES.map((inst) => (
+                  <option key={inst.code} value={inst.code}>
+                    {inst.name}
+                  </option>
                 ))}
-              </datalist>
+              </select>
             </Field>
 
             <Field

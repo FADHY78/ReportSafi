@@ -51,11 +51,13 @@ const s1 = await api.identify({
   names: 'Neema Baraka Mushi',
   phone: '0712345678',
   supervisorName: 'Dr. Asha Mnyamzi',
+  institution: 'CBE',
   programmeId: baf.id,
 });
 ok('identity normalised', s1.student.regNo === 'BAF/2024/00001' && s1.student.phone === '+255712345678',
   `${s1.student.regNo} / ${s1.student.phone}`);
 ok('supervisor name stored on identity', s1.student.supervisorName === 'Dr. Asha Mnyamzi', s1.student.supervisorName);
+ok('institution stored on identity', s1.student.institution === 'CBE', s1.student.institution);
 ok('identity flagged as unverified', s1.verified === false);
 
 /* 4. reserve (BR-01..04) */

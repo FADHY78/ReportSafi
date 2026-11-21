@@ -892,6 +892,7 @@ function seedHistory(db) {
       names,
       phone,
       supervisorName: '',
+      institution: 'CBE',
       programmeId: programme.id,
       createdAt: selectedAt,
       updatedAt: selectedAt,

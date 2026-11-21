@@ -16,16 +16,17 @@ export const DEFAULT_SITE_CONTENT = {
   },
   institutions: [
     'CBE',
-    'DMI',
-    'NIT',
-    'IFM',
-    'TIA',
     'UDSM',
     'DIT',
+    'TIA',
     'MUHAS',
+    'Mzumbe',
+    'IFM',
     'Ardhi',
+    'SAUT',
+    'DMI',
+    'NIT',
     'OUT',
-    'ISW',
   ],
   pricing: [
     {

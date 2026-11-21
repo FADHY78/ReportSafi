@@ -1,15 +1,21 @@
 import PageIntro from '../components/PageIntro';
 import FeaturesSection from '../sections/Features';
+import { useLanguage } from '../lib/i18n';
 
 export default function Features() {
+  const { t } = useLanguage();
+
   return (
     <>
       <PageIntro
-        eyebrow="The platform"
-        title="Everything the portal does, in one place"
-        lead="A catalogue, a reservation rule the system enforces itself, and a record of every change — built so that no two students can claim the same title."
-        primary={{ label: 'Browse titles', to: '/catalogue' }}
-        secondary={{ label: 'How the process works', to: '/help' }}
+        eyebrow={t('feat_page_eyebrow', 'Mfumo Rasmi')}
+        title={t('feat_page_heading', 'Kila kitu ambacho mfumo unafanya, sehemu moja')}
+        lead={t(
+          'feat_page_lead',
+          'Orodha ya mada, sheria za uhifadhi zinazotekelezwa na seva, na kumbukumbu ya kila badiliko — ili kuhakikisha hakuna wanafunzi wawili wanaochukua mada moja.'
+        )}
+        primary={{ label: t('feat_btn_browse', 'Angalia mada zilizopo'), to: '/catalogue' }}
+        secondary={{ label: t('feat_btn_works', 'Jinsi mfumo unavyofanya kazi'), to: '/help' }}
       />
       <FeaturesSection />
     </>

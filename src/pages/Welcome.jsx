@@ -496,18 +496,22 @@ export default function Welcome({ session, onIdentified }) {
                   error={errors.programmeId}
                   hint={
                     programmes.length
-                      ? `${programmes.length} approved programmes available`
-                      : 'Loading approved programmes…'
+                      ? `${programmes.length} ${t('prog_available_count', 'programu zilizoidhinishwa zinapatikana')}`
+                      : t('prog_loading', 'Programu zilizoidhinishwa zinapakuliwa…')
                   }
                 >
                   <select id="prog" className="select" value={form.programmeId} onChange={set('programmeId')}>
                     <option value="">{t('form_prog_placeholder', '-- Chagua kozi unayosomea --')}</option>
-                    {['Basic Technician Certificate', 'Ordinary Diploma', 'Bachelor Degree'].map(
-                      (award) => {
-                        const group = programmes.filter((p) => p.award === award);
+                    {[
+                      { key: 'Basic Technician Certificate', label: t('prog_award_cert', 'Astashahada ya Awali (Basic Technician Certificate)') },
+                      { key: 'Ordinary Diploma', label: t('prog_award_dip', 'Stashahada (Ordinary Diploma)') },
+                      { key: 'Bachelor Degree', label: t('prog_award_deg', 'Shahada ya Kwanza (Bachelor Degree)') },
+                    ].map(
+                      ({ key, label }) => {
+                        const group = programmes.filter((p) => p.award === key);
                         if (!group.length) return null;
                         return (
-                          <optgroup key={award} label={award}>
+                          <optgroup key={key} label={label}>
                             {group.map((p) => (
                               <option key={p.id} value={p.id}>
                                 {p.code} — {p.name}

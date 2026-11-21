@@ -30,6 +30,18 @@ const TRANSLATIONS = {
     stat_programmes: 'Programu / Kozi wazi',
     stat_today: 'Zilizochaguliwa leo',
 
+    // Selection Record Hero Card
+    rec_portal: 'Mfumo Rasmi wa Mada',
+    rec_live: 'Moja kwa Moja',
+    rec_label: 'Rekodi ya uchaguzi',
+    rec_academic_year: 'Mwaka wa masomo',
+    rec_completed: 'Mada zilizochaguliwa',
+    rec_students: 'wanafunzi',
+    rec_guarantee: 'Uhakika wa mfumo',
+    rec_guarantee_val: 'Mwanafunzi 1 / mada 1',
+    rec_authoritative: 'Inathibitishwa na Seva',
+    rec_audited: 'Imekaguliwa',
+
     // Logo Cloud
     logo_label: 'Wanafunzi kutoka vyuo vikuu na taasisi za Dar es Salaam na Tanzania nzima',
 
@@ -87,6 +99,11 @@ const TRANSLATIONS = {
     form_prog_placeholder: '-- Chagua kozi unayosomea --',
     form_submit: 'Thibitisha na Uendelee kwenye Orodha ya Mada',
     form_submitting: 'Inathibitisha…',
+    prog_loading: 'Programu zilizoidhinishwa zinapakuliwa…',
+    prog_available_count: 'programu zilizoidhinishwa zinapatikana',
+    prog_award_cert: 'Astashahada ya Awali (Basic Technician Certificate)',
+    prog_award_dip: 'Stashahada (Ordinary Diploma)',
+    prog_award_deg: 'Shahada ya Kwanza (Bachelor Degree)',
 
     // Validation errors
     err_reg: 'Weka namba yako halisi ya usajili wa chuo.',
@@ -95,6 +112,24 @@ const TRANSLATIONS = {
     err_supervisor: 'Weka jina kamili la msimamizi wako wa utafiti.',
     err_phone: 'Weka namba sahihi ya simu inayopatikana.',
     err_prog: 'Chagua programu au kozi unayosomea.',
+
+    // Showcase
+    showcase_eyebrow: 'Orodha ya Mada',
+    showcase_heading: 'Ona mada zilizo wazi kabla ya kuchagua',
+    showcase_lead:
+      'Tafuta kwa neno kuu, chagua fani yako, na uone upatikanaji mara moja. Kijani inamaanisha Inapatikana, nyekundu inamaanisha Imechukuliwa — maneno yanaonekana wazi wakati wote.',
+    showcase_p1: 'Mpangilio wa kurasa kwa mistari 20, 50 au 100 kwa orodha ya mada 1,000+',
+    showcase_p2: 'Utafutaji wa haraka kwa jina la mada na fani',
+    showcase_p3: 'Upatikanaji unathibitishwa upya na mfumo punde unapobonyeza kuthibitisha',
+    showcase_loading: 'Mada zilizopo zinapakuliwa…',
+
+    // CtaBand
+    cta_eyebrow: 'Dirisha la Uchaguzi · 2026 / 2027',
+    cta_heading: 'Chagua mada yako mapema kabla hazijachukuliwa.',
+    cta_lead:
+      'Taarifa sita, dakika moja, namba moja ya kumbukumbu. Upatikanaji unakaguliwa unapoithibitisha — siyo ukurasa ulipofunguka.',
+    cta_btn_browse: 'Angalia mada zilizopo',
+    cta_btn_identify: 'Jaza taarifa zako kwanza',
 
     // Values / Why Report Safi
     why_eyebrow: 'Kwa Nini Report Safi',
@@ -114,6 +149,56 @@ const TRANSLATIONS = {
     why_card4_text:
       'Mada zote na ripoti zinafuata miongozo ya vyuo vikuu vya Tanzania na Tume ya Vyuo Vikuu (TCU), zikiwa na kumbukumbu kamili ya ukaguzi.',
 
+    // Features Section & Page
+    feat_eyebrow: 'Ndani ya Mfumo',
+    feat_heading: 'Mfumo rasmi wa kumbukumbu, siyo fomu ya kawaida',
+    feat_lead:
+      'Makosa ya mada hutokea kwa njia ndogo: mada kurudiwa, taarifa kufutwa kisiri, au mabadiliko yasiyokuwa na maelezo. Report Safi imejengwa kuzuia haya yote.',
+    feat_page_eyebrow: 'Mfumo Rasmi',
+    feat_page_heading: 'Kila kitu ambacho mfumo unafanya, sehemu moja',
+    feat_page_lead:
+      'Orodha ya mada, sheria za uhifadhi zinazotekelezwa na seva, na kumbukumbu ya kila badiliko — ili kuhakikisha hakuna wanafunzi wawili wanaochukua mada moja.',
+    feat_btn_browse: 'Angalia mada zilizopo',
+    feat_btn_works: 'Jinsi mfumo unavyofanya kazi',
+
+    // Security Section & Page
+    sec_eyebrow: 'Uaminifu na Usalama',
+    sec_heading: 'Mambo ambayo wakaguzi na vyuo huuliza kwanza',
+    sec_lead:
+      'Imejengwa kufuata miongozo na sheria tisa (BR-01 … BR-09), na ulinzi thabiti kwenye seva bila kubahatisha.',
+    sec_page_eyebrow: 'Usalama na Kanuni',
+    sec_page_heading: 'Jinsi mfumo unavyolinda mada yako',
+    sec_page_lead:
+      'Kuanzia uthibitisho wa seva hadi kumbukumbu isiyoweza kufutika, kila hatua inalindwa.',
+
+    // Help Section & Page
+    help_eyebrow: 'Kituo cha Msaada · Mwaka wa Masomo 2026 / 2027',
+    help_heading: 'Uchaguzi wa mada kwa lugha rahisi.',
+    help_lead:
+      'Jitambulishe, hifadhi mada moja iliyo wazi, na uhifadhi namba yako ya kumbukumbu. Kila hatua inakaguliwa na mfumo kabla ya kuhifadhiwa.',
+    help_steps_eyebrow: 'Utaratibu',
+    help_steps_heading: 'Hatua nne rahisi',
+    help_steps_sub: 'Kuanzia kujitambulisha hadi kupata namba ya kumbukumbu.',
+    help_step1_title: 'Jitambulishe',
+    help_step1_text: 'Namba ya usajili, majina kamili, chuo cha Dar es Salaam, msimamizi na kozi unayosomea.',
+    help_step2_title: 'Tafuta mada kwenye orodha',
+    help_step2_text: 'Chuja kwa fani na upatikanaji. Mada za kijani ziko wazi; mada za nyekundu zimeshachukuliwa.',
+    help_step3_title: 'Kagua na uthibitishe',
+    help_step3_text: 'Kagua taarifa zako na jina la mada kabla ya kuhifadhi. Huu ndio wakati wa kuhakiki kila kitu.',
+    help_step4_title: 'Hifadhi namba yako ya kumbukumbu',
+    help_step4_text: 'Mada inafungwa kwa wanafunzi wengine, na unapata namba rasmi ya kumbukumbu (Reference) ya kuchapa au kuhifadhi.',
+    help_rules_eyebrow: 'Sheria za Mfumo',
+    help_rules_heading: 'Sheria 9 zinazosimamiwa na mfumo',
+    help_rules_sub: 'Zinakaguliwa wakati wa kuthibitisha — kamwe siyo kwenye kivinjari pekee.',
+    help_rules_notice: 'Wanafunzi wawili wakithibitisha mada moja sekunde moja, mmoja pekee ndiye anayefanikiwa.',
+    help_change_title: 'Unahitaji kufanya mabadiliko?',
+    help_change_desc:
+      'Wanafunzi hawawezi kubadilisha au kuachia mada bila utaratibu. Wasiliana nasi ukiwa na namba yako ya usajili na namba ya kumbukumbu (Reference) ili kubadilisha mada au kurekebisha taarifa.',
+    help_faq_eyebrow: 'Maswali Yanayoulizwa Mara kwa Mara',
+    help_faq_heading: 'Ufafanuzi wa ziada',
+    help_contact_title: 'Wasiliana Nasi',
+    help_contact_sub: 'Tuko hapa kukusaidia katika kila hatua ya mradi au utafiti wako.',
+
     // Catalogue
     cat_title: 'Orodha ya Mada za Utafiti',
     cat_search_placeholder: 'Tafuta kwa mada, nambari ya mada, au maneno muhimu…',
@@ -127,6 +212,41 @@ const TRANSLATIONS = {
     cat_empty: 'Hakuna mada zilizopatikana kwa utafutaji wako.',
     cat_holding: 'Tayari umeshahifadhi mada:',
     cat_editing_ref: 'Unabadilisha mada kwa namba ya kumbukumbu:',
+    cat_record: 'Rekodi',
+    cat_title_col: 'Mada Iliyoidhinishwa',
+    cat_status_col: 'Hali',
+    cat_action_col: 'Hatua',
+    cat_filter_label: 'Vichujio',
+    cat_filter_all_avail: 'Hali zote',
+    cat_filter_avail_only: 'Zinazopatikana tu',
+    cat_filter_unavail_only: 'Zilizochukuliwa tu',
+    cat_sort_az: 'Panga: A – Z',
+    cat_sort_za: 'Panga: Z – A',
+    cat_sort_new: 'Mpya kwanza',
+    cat_sort_old: 'Za zamani kwanza',
+    cat_reset: 'Weka upya',
+    cat_records: 'mada',
+    cat_refresh: 'Sasisha',
+    cat_current_title: 'Mada yako ya sasa',
+    cat_use_to_switch: 'Tumia kubadilisha mada',
+    cat_taken: 'Imechukuliwa',
+    cat_btn_select: 'Kagua na Chagua',
+    cat_btn_select_new: 'Chagua kama Mada Mpya',
+    cat_per_page: 'Mada kwa ukurasa:',
+    cat_status_key: 'Ufafanuzi wa Hali',
+    cat_status_key_sub: 'Soma maandishi, usitegemee rangi pekee',
+    cat_avail_text: 'Unaweza kuikagua na kuichagua mada hii.',
+    cat_unavail_text: 'Tayari imeshachukuliwa na mwanafunzi mwingine.',
+    cat_server_note: 'Hali inaamuliwa na mfumo kwenye seva, kamwe siyo skrini hii.',
+    cat_one_title_heading: 'Mada moja. Mwanafunzi mmoja.',
+    cat_one_title_text:
+      'Mada yako inahifadhiwa rasmi pale tu utakapothibitisha hatua inayofuata. Baada ya hapo, namba yako ya kumbukumbu inakupa umiliki kamili.',
+    cat_how_it_works: 'Jinsi mfumo unavyofanya kazi',
+    cat_held_notice: 'Kwa sasa unamiliki mada namba',
+    cat_held_sub:
+      'Mwanafunzi mmoja anaruhusiwa kuwa na mada moja inayofanya kazi kwa wakati mmoja. Unataka kubadilisha na kuchagua nyingine au kurekebisha taarifa?',
+    cat_btn_change_with: 'Badilisha mada ukitumia',
+    cat_btn_view_edit: 'Tazama / Rekebisha taarifa',
 
     // Confirm
     confirm_title: 'Thibitisha Uchaguzi wa Mada Yako',
@@ -160,7 +280,7 @@ const TRANSLATIONS = {
     pricing_lead:
       'Kuchagua mada ni bure 100%. Ukihitaji uandishi wa kitaalamu wa andiko (proposal) au ripoti kamili ya utafiti (chapters 1–5), chagua kifurushi chako hapa.',
     pricing_fast_delivery: 'Fast delivery',
-    pricing_revisions: 'Revisions until you submit',
+    pricing_revisions: 'Marekebisho mpaka ukubaliwe chuoni',
     pricing_order_btn: 'Agiza Kifurushi Hiki',
 
     // Order modal
@@ -204,6 +324,18 @@ const TRANSLATIONS = {
     stat_available: 'Available right now',
     stat_programmes: 'Programmes open',
     stat_today: 'Selections today',
+
+    // Selection Record Hero Card
+    rec_portal: 'Title Selection Portal',
+    rec_live: 'Live',
+    rec_label: 'Selection record',
+    rec_academic_year: 'Academic year',
+    rec_completed: 'Completed selections',
+    rec_students: 'students',
+    rec_guarantee: 'Portal guarantee',
+    rec_guarantee_val: '1 title / student',
+    rec_authoritative: 'Server-authoritative',
+    rec_audited: 'Audited',
 
     // Logo Cloud
     logo_label: 'Students from colleges and universities across Tanzania',
@@ -262,6 +394,11 @@ const TRANSLATIONS = {
     form_prog_placeholder: '-- Choose your programme --',
     form_submit: 'Confirm & Proceed to Catalogue',
     form_submitting: 'Confirming…',
+    prog_loading: 'Loading approved programmes…',
+    prog_available_count: 'approved programmes available',
+    prog_award_cert: 'Basic Technician Certificate',
+    prog_award_dip: 'Ordinary Diploma',
+    prog_award_deg: 'Bachelor Degree',
 
     // Validation errors
     err_reg: 'Enter your registration number.',
@@ -270,6 +407,24 @@ const TRANSLATIONS = {
     err_supervisor: 'Enter your supervisor name.',
     err_phone: 'Enter your active phone number.',
     err_prog: 'Choose your programme.',
+
+    // Showcase
+    showcase_eyebrow: 'The catalogue',
+    showcase_heading: 'See what is free before you commit',
+    showcase_lead:
+      'Search by keyword, narrow to your programme, and read availability at a glance. Green says Available, red says Reserved — the word is always there, even in black and white.',
+    showcase_p1: 'Pagination at 20, 50 or 100 rows for catalogues of 1,000+ titles',
+    showcase_p2: 'Keyword search across title wording and category',
+    showcase_p3: 'Availability re-verified by the portal the moment you confirm',
+    showcase_loading: 'Loading live titles…',
+
+    // CtaBand
+    cta_eyebrow: 'Selection window · 2026 / 2027',
+    cta_heading: 'Pick your title while the good ones are still free.',
+    cta_lead:
+      'Four fields, one minute, one reference number. Availability is checked the moment you confirm — not when your page happened to load.',
+    cta_btn_browse: 'Browse available titles',
+    cta_btn_identify: 'Enter my details first',
 
     // Values / Why Report Safi
     why_eyebrow: 'Why Report Safi',
@@ -289,6 +444,56 @@ const TRANSLATIONS = {
     why_card4_text:
       'The catalogue and report packages follow Tanzanian university guidelines, with a Research Office that can audit every action.',
 
+    // Features Section & Page
+    feat_eyebrow: 'What is inside',
+    feat_heading: 'Built like a system of record, not a signup form',
+    feat_lead:
+      'Title selection goes wrong in small ways: a duplicated reservation, a silent overwrite, a change nobody can explain later. Report Safi is designed so those cannot happen.',
+    feat_page_eyebrow: 'The platform',
+    feat_page_heading: 'Everything the portal does, in one place',
+    feat_page_lead:
+      'A catalogue, a reservation rule the system enforces itself, and a record of every change — built so that no two students can claim the same title.',
+    feat_btn_browse: 'Browse titles',
+    feat_btn_works: 'How the process works',
+
+    // Security Section & Page
+    sec_eyebrow: 'Trust & integration',
+    sec_heading: 'The parts an auditor asks about first',
+    sec_lead:
+      'Built to the PRD\'s own rules (BR-01 … BR-09), with the enforcement in one service layer that can be pointed at a real backend without touching the interface.',
+    sec_page_eyebrow: 'Security & rules',
+    sec_page_heading: 'How the system protects your title selection',
+    sec_page_lead:
+      'From server-authoritative validation to an immutable audit trail, every step is protected.',
+
+    // Help Section & Page
+    help_eyebrow: 'Help centre · Academic Year 2026 / 2027',
+    help_heading: 'Title selection, explained simply.',
+    help_lead:
+      'Identify yourself, reserve one available title and keep your reference. Everything below is checked by the portal before a selection is saved.',
+    help_steps_eyebrow: 'The process',
+    help_steps_heading: 'Four steps',
+    help_steps_sub: 'From identification to your reference number.',
+    help_step1_title: 'Identify yourself',
+    help_step1_text: 'Registration number, full names, Dar es Salaam institution, supervisor name and programme.',
+    help_step2_title: 'Search the catalogue',
+    help_step2_text: 'Filter by keyword and availability. Green rows are free; red rows are already reserved.',
+    help_step3_title: 'Review and confirm',
+    help_step3_text: 'Check your details against the title before anything is saved. This is your last chance to stop.',
+    help_step4_title: 'Keep your reference',
+    help_step4_text: 'The title closes to everyone else and you receive a dated reference you can print or copy.',
+    help_rules_eyebrow: 'Business rules',
+    help_rules_heading: 'Nine rules the portal enforces',
+    help_rules_sub: 'Checked at confirmation — never only in your browser.',
+    help_rules_notice: 'If two students confirm the same title at the same moment, exactly one succeeds.',
+    help_change_title: 'Need a change?',
+    help_change_desc:
+      'Students cannot edit a selection directly. Contact us with your registration number and reference; an administrator releases it with a recorded reason.',
+    help_faq_eyebrow: 'Frequently Asked Questions',
+    help_faq_heading: 'Additional explanations',
+    help_contact_title: 'Contact Us',
+    help_contact_sub: 'We are here to support your research and project journey.',
+
     // Catalogue
     cat_title: 'Approved Research Titles',
     cat_search_placeholder: 'Search by topic, title code, or keywords…',
@@ -302,6 +507,41 @@ const TRANSLATIONS = {
     cat_empty: 'No titles matched your search.',
     cat_holding: 'You currently hold:',
     cat_editing_ref: 'Changing title for reference:',
+    cat_record: 'Record',
+    cat_title_col: 'Approved title',
+    cat_status_col: 'Status',
+    cat_action_col: 'Action',
+    cat_filter_label: 'Filters',
+    cat_filter_all_avail: 'All availability',
+    cat_filter_avail_only: 'Available only',
+    cat_filter_unavail_only: 'Unavailable only',
+    cat_sort_az: 'Sort: A – Z',
+    cat_sort_za: 'Sort: Z – A',
+    cat_sort_new: 'Newest first',
+    cat_sort_old: 'Oldest first',
+    cat_reset: 'Reset',
+    cat_records: 'records',
+    cat_refresh: 'Refresh',
+    cat_current_title: 'Your current title',
+    cat_use_to_switch: 'Use to switch',
+    cat_taken: 'Taken',
+    cat_btn_select: 'Review & select',
+    cat_btn_select_new: 'Select as new title',
+    cat_per_page: 'Titles per page:',
+    cat_status_key: 'Status key',
+    cat_status_key_sub: 'Read the record, not just the colour',
+    cat_avail_text: 'You may review and select this title.',
+    cat_unavail_text: 'Already reserved by another student.',
+    cat_server_note: 'Status is decided by the portal, never by this screen.',
+    cat_one_title_heading: 'One title. One student.',
+    cat_one_title_text:
+      'Your reservation is created only after you confirm the next step. After that, only an authorised administrator can release it.',
+    cat_how_it_works: 'How selection works',
+    cat_held_notice: 'You currently hold',
+    cat_held_sub:
+      'One student holds one active title at a time. Want to switch to another available title or edit your details?',
+    cat_btn_change_with: 'Change title with',
+    cat_btn_view_edit: 'View / Edit details',
 
     // Confirm
     confirm_title: 'Confirm Your Title Selection',

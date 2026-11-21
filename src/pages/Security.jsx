@@ -1,14 +1,20 @@
 import PageIntro from '../components/PageIntro';
 import SecuritySection from '../sections/Security';
+import { useLanguage } from '../lib/i18n';
 
 export default function Security() {
+  const { t } = useLanguage();
+
   return (
     <>
       <PageIntro
-        eyebrow="Trust & integration"
-        title="Built for the questions an auditor asks"
-        lead="Every reservation is checked by the portal itself, every staff action is attributed, and every record can be exported as plain CSV."
-        primary={{ label: 'Read the business rules', to: '/help' }}
+        eyebrow={t('sec_page_eyebrow', 'Usalama na Kanuni')}
+        title={t('sec_page_heading', 'Jinsi mfumo unavyolinda mada yako')}
+        lead={t(
+          'sec_page_lead',
+          'Kuanzia uthibitisho wa seva hadi kumbukumbu isiyoweza kufutika, kila hatua inalindwa.'
+        )}
+        primary={{ label: t('help_rules_heading', 'Sheria 9 za Mfumo'), to: '/help' }}
       />
       <SecuritySection />
     </>

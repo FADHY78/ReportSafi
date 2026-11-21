@@ -1,5 +1,6 @@
 import { BrandMark, IconCheck, IconShield, IconUsers } from '../ui/Icons';
 import { useSiteContent } from '../lib/useSiteContent';
+import { useLanguage } from '../lib/i18n';
 
 /**
  * The home hero's visual proof: an official-looking selection record that shows
@@ -7,6 +8,7 @@ import { useSiteContent } from '../lib/useSiteContent';
  */
 export default function SelectionRecord({ completed }) {
   const { meta } = useSiteContent();
+  const { t } = useLanguage();
   const count = completed == null ? '—' : Number(completed).toLocaleString('en-GB');
 
   return (
@@ -15,17 +17,19 @@ export default function SelectionRecord({ completed }) {
         <BrandMark size={38} />
         <div className="record-brand">
           <strong>Report Safi</strong>
-          <span>Title Selection Portal</span>
+          <span>{t('rec_portal', 'Mfumo Rasmi wa Mada')}</span>
         </div>
         <span className="record-state">
-          <IconCheck size={13} /> Live
+          <IconCheck size={13} /> {t('rec_live', 'Moja kwa Moja')}
         </span>
       </div>
 
       <div className="record-ref">
-        <span className="record-label">Selection record</span>
+        <span className="record-label">{t('rec_label', 'Rekodi ya uchaguzi')}</span>
         <strong className="record-code">{meta.refPrefix}</strong>
-        <span className="record-year mono">Academic year {meta.academicYear}</span>
+        <span className="record-year mono">
+          {t('rec_academic_year', 'Mwaka wa masomo')} {meta.academicYear}
+        </span>
       </div>
 
       <div className="record-metrics">
@@ -34,8 +38,8 @@ export default function SelectionRecord({ completed }) {
             <IconUsers size={17} />
           </span>
           <div>
-            <span>Completed selections</span>
-            <strong>{count} students</strong>
+            <span>{t('rec_completed', 'Mada zilizochaguliwa')}</span>
+            <strong>{count} {t('rec_students', 'wanafunzi')}</strong>
           </div>
         </div>
         <div className="record-metric">
@@ -43,15 +47,15 @@ export default function SelectionRecord({ completed }) {
             <IconShield size={17} />
           </span>
           <div>
-            <span>Portal guarantee</span>
-            <strong>1 title / student</strong>
+            <span>{t('rec_guarantee', 'Uhakika wa mfumo')}</span>
+            <strong>{t('rec_guarantee_val', 'Mwanafunzi 1 / mada 1')}</strong>
           </div>
         </div>
       </div>
 
       <div className="record-foot">
-        <span className="mono">Server-authoritative</span>
-        <span className="mono">Audited</span>
+        <span className="mono">{t('rec_authoritative', 'Inathibitishwa na Seva')}</span>
+        <span className="mono">{t('rec_audited', 'Imekaguliwa')}</span>
       </div>
     </div>
   );

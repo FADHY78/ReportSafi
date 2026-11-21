@@ -11,15 +11,67 @@ const ICONS = {
   book: IconBook,
 };
 
-/**
- * Report services, priced per project. Reserving a title in the portal itself
- * stays free for students (per the PRD) — these are the research-writing
- * packages the Research Office delivers around it.
- */
+const PLANS_SW = [
+  {
+    icon: 'clipboard',
+    name: 'Andiko la Utafiti (Proposal)',
+    price: 'TSh 25,000',
+    unit: 'kwa proposal',
+    note: 'Kila kitu kinachohitajika ili proposal yako ikubalike chuoni.',
+    features: [
+      'Utengenezaji wa mada na uthibitisho',
+      'Kauli ya tatizo na malengo ya utafiti',
+      'Muhtasari wa mapitio ya fasihi (Lit. Review)',
+      'Muundo na mbinu za utafiti (Methodology)',
+      'Marekebisho mpaka uwasilishe chuoni',
+      'Kukabidhiwa haraka (Fast delivery)',
+    ],
+    cta: 'Agiza Proposal Hii',
+    tone: 'plain',
+  },
+  {
+    icon: 'graduation',
+    name: 'Proposal + Ripoti Kamili ya Utafiti',
+    price: 'TSh 40,000',
+    unit: 'kifurushi kamili',
+    note: 'Kuanzia kuidhinishwa kwa proposal hadi kukamilika kwa ripoti kamili.',
+    features: [
+      'Kila kitu kilichopo kwenye Proposal',
+      'Sura zote za ripoti (Chapters 1 – 5)',
+      'Mwongozo wa ukusanyaji na uchambuzi wa data',
+      'Majedwali, grafu na marejeleo yaliyopangwa',
+      'Ripoti ya ukaguzi wa plagiarism',
+      'Marekebisho mpaka ukubaliwe chuoni',
+      'Kukabidhiwa haraka (Fast delivery)',
+    ],
+    cta: 'Agiza Kifurushi Kamili',
+    tone: 'featured',
+  },
+  {
+    icon: 'book',
+    name: 'Ripoti Kamili ya Utafiti',
+    price: 'TSh 30,000',
+    unit: 'kwa ripoti',
+    note: 'Umeshapitishiwa proposal? Tunakamilisha ripoti nzima ya utafiti.',
+    features: [
+      'Sura zote za ripoti (Chapters 1 – 5)',
+      'Uchambuzi wa data na tafsiri ya matokeo',
+      'Majedwali, grafu na marejeleo yaliyopangwa',
+      'Majadiliano, muhtasari na hitimisho',
+      'Marekebisho mpaka ukubaliwe chuoni',
+      'Kukabidhiwa haraka (Fast delivery)',
+    ],
+    cta: 'Agiza Ripoti Hii',
+    tone: 'plain',
+  },
+];
+
 export default function Pricing({ session }) {
-  const { pricing } = useSiteContent();
-  const { t } = useLanguage();
+  const { pricing: sitePricing } = useSiteContent();
+  const { t, isSwahili } = useLanguage();
   const [selectedPlan, setSelectedPlan] = useState(null);
+
+  const pricing = isSwahili ? PLANS_SW : sitePricing;
 
   return (
     <section className="section section-alt" id="pricing">
@@ -40,7 +92,11 @@ export default function Pricing({ session }) {
             const Icon = ICONS[p.icon] || IconClipboard;
             return (
               <article className={`plan-card${p.tone === 'featured' ? ' is-featured' : ''}`} key={p.name}>
-                {p.tone === 'featured' && <span className="plan-flag">Best value</span>}
+                {p.tone === 'featured' && (
+                  <span className="plan-flag">
+                    {isSwahili ? 'Kifurushi Bora Zaidi' : 'Best value'}
+                  </span>
+                )}
                 <span className="plan-icon">
                   <Icon size={19} />
                 </span>
@@ -64,13 +120,7 @@ export default function Pricing({ session }) {
                   icon={IconArrowRight}
                   onClick={() => setSelectedPlan(p)}
                 >
-                  {p.cta === 'Order the package'
-                    ? 'Agiza Kifurushi Kamili'
-                    : p.cta === 'Order a proposal'
-                    ? 'Agiza Proposal Hii'
-                    : p.cta === 'Order a report'
-                    ? 'Agiza Ripoti Hii'
-                    : p.cta}
+                  {p.cta}
                 </Btn>
               </article>
             );
@@ -78,8 +128,9 @@ export default function Pricing({ session }) {
         </div>
 
         <p className="plan-footnote">
-          Prices are in Tanzanian Shillings and exclude VAT. Delivery timelines start once topic
-          approval and the draft materials are received — title selection in the portal stays free.
+          {isSwahili
+            ? 'Bei zote ziko katika Shilingi ya Kitanzania (TSh). Muda wa kuandaa unaanza pale mada inapoidhinishwa na taarifa za awali kupokelewa — kuchagua mada kwenye mfumo ni bure 100%.'
+            : 'Prices are in Tanzanian Shillings and exclude VAT. Delivery timelines start once topic approval and the draft materials are received — title selection in the portal stays free.'}
         </p>
       </div>
 

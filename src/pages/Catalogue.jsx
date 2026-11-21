@@ -35,7 +35,7 @@ function Stat({ label, value, tone, hint }) {
 
 export default function Catalogue({ session, onResetSession }) {
   const notify = useToast();
-  const { t } = useLanguage();
+  const { t, isSwahili } = useLanguage();
   const { query } = useRoute();
   const editRef = (query?.get('editRef') || '').trim().toUpperCase();
 
@@ -69,13 +69,13 @@ export default function Catalogue({ session, onResetSession }) {
       const res = await getCatalogue({ programmeId, q, status, sort, page, pageSize });
       setData(res);
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Could not load the catalogue.';
+      const message = err instanceof ApiError ? err.message : (isSwahili ? 'Imeshindwa kupakia orodha ya mada.' : 'Could not load the catalogue.');
       setError(message);
       notify(message, 'error');
     } finally {
       setLoading(false);
     }
-  }, [programmeId, q, status, sort, page, pageSize, notify]);
+  }, [programmeId, q, status, sort, page, pageSize, notify, isSwahili]);
 
   // Debounce keystrokes so typing does not fire a request on every character.
   useEffect(() => {
@@ -108,7 +108,9 @@ export default function Catalogue({ session, onResetSession }) {
               {initials}
             </div>
             <div>
-              <span className="cat-identity-label mono">Student session</span>
+              <span className="cat-identity-label mono">
+                {isSwahili ? 'Kipindi cha mwanafunzi' : 'Student session'}
+              </span>
               <strong>{person?.names}</strong>
               <div className="identity-meta">
                 <span className="mono">{person?.regNo}</span>
@@ -117,21 +119,21 @@ export default function Catalogue({ session, onResetSession }) {
                 {person?.supervisorName && (
                   <>
                     <span>·</span>
-                    <span>Sup: {person.supervisorName}</span>
+                    <span>{isSwahili ? 'Msimamizi' : 'Sup'}: {person.supervisorName}</span>
                   </>
                 )}
                 <span>·</span>
-                <span>{programme ? `${programme.code} — ${programme.name}` : 'Loading programme…'}</span>
+                <span>{programme ? `${programme.code} — ${programme.name}` : (isSwahili ? 'Inapakua kozi…' : 'Loading programme…')}</span>
               </div>
             </div>
           </div>
 
           <div className="identity-actions">
             <span className="tag tag-amber">
-              <IconInfo size={13} /> Not verified identity
+              <IconInfo size={13} /> {isSwahili ? 'Taarifa hazijahakikiwa chuoni' : 'Not verified identity'}
             </span>
             <Btn variant="outline" size="sm" icon={IconX} onClick={onResetSession}>
-              Change details
+              {isSwahili ? 'Badilisha taarifa' : 'Change details'}
             </Btn>
           </div>
         </div>
@@ -147,17 +149,23 @@ export default function Catalogue({ session, onResetSession }) {
               <span>{t('nav_catalogue', 'Mada za Utafiti')}</span>
             </nav>
             <span className="eyebrow">{t('id_eyebrow', 'Hatua ya 02 · Uchaguzi wa Mada')}</span>
-            <h1>{isEditMode ? 'Chagua mada mpya ya utafiti' : t('cat_title', 'Tafuta mada yako ya utafiti')}</h1>
+            <h1>{isEditMode ? (isSwahili ? 'Chagua mada mpya ya utafiti' : 'Select a new research title') : t('cat_title', 'Tafuta mada yako ya utafiti')}</h1>
             <p className="lead">
               {isEditMode
-                ? `Unabadilisha mada kwa namba ya kumbukumbu ${held.ref}. Chagua mada yoyote iliyo wazi hapa chini kuchukua nafasi ya mada yako ya sasa.`
+                ? (isSwahili
+                  ? `Unabadilisha mada kwa namba ya kumbukumbu ${held.ref}. Chagua mada yoyote iliyo wazi hapa chini kuchukua nafasi ya mada yako ya sasa.`
+                  : `Changing title for reference ${held.ref}. Choose any available title below to replace your current title.`)
                 : held
-                ? 'Tayari unamiliki mada moja. Tumia namba yako ya kumbukumbu hapa chini ikiwa unataka kurekebisha taarifa au kubadilisha mada nyingine iliyo wazi.'
-                : 'Tafuta na linganisha mada zilizoidhinishwa. Kuchagua mada bado haihifadhi moja kwa moja — utathibitisha hatua ya mwisho kwenye ukurasa unaofuata.'}
+                ? (isSwahili
+                  ? 'Tayari unamiliki mada moja. Tumia namba yako ya kumbukumbu hapa chini ikiwa unataka kurekebisha taarifa au kubadilisha mada nyingine iliyo wazi.'
+                  : 'You currently hold one title. Use your reference number below to edit your details or switch to another available title.')
+                : (isSwahili
+                  ? 'Tafuta na linganisha mada zilizoidhinishwa. Kuchagua mada bado haihifadhi moja kwa moja — utathibitisha hatua ya mwisho kwenye ukurasa unaofuata.'
+                  : 'Search and compare approved titles. Selecting a title does not save it yet — you will confirm the final step on the next screen.')}
             </p>
             <div className="cat-programme-chip">
               <IconGraduation size={16} />
-              <span>{programme?.name || 'Programu yako'}</span>
+              <span>{programme?.name || (isSwahili ? 'Programu yako' : 'Your programme')}</span>
               <b className="mono">{programme?.code || '—'}</b>
             </div>
           </div>
@@ -166,19 +174,19 @@ export default function Catalogue({ session, onResetSession }) {
             <Stat
               label={t('cat_filter_all', 'Mada zote')}
               value={data ? data.catalogueTotal.toLocaleString('en-GB') : '—'}
-              hint="Mada zilizoidhinishwa"
+              hint={isSwahili ? 'Mada zilizoidhinishwa' : 'Approved titles'}
             />
             <Stat
               label={t('cat_filter_avail', 'Zinazopatikana')}
               value={data ? data.available.toLocaleString('en-GB') : '—'}
               tone="green"
-              hint="Ziko wazi kuchaguliwa"
+              hint={isSwahili ? 'Ziko wazi kuchaguliwa' : 'Available to select'}
             />
             <Stat
               label={t('cat_filter_taken', 'Zilizochukuliwa')}
               value={data ? data.unavailable.toLocaleString('en-GB') : '—'}
               tone="red"
-              hint="Zimekwishachaguliwa"
+              hint={isSwahili ? 'Zimekwishachaguliwa' : 'Already taken'}
             />
           </div>
         </header>
@@ -186,16 +194,19 @@ export default function Catalogue({ session, onResetSession }) {
         {isEditMode ? (
           <Notice tone="info" icon={IconRefresh}>
             <div style={{ flex: 1 }}>
-              <strong>Changing title using reference {held.ref}.</strong> Current title:{' '}
-              <span className="mono">{held.title?.code}</span> — {held.title?.text}. Choose an
-              available title below to replace it; your old title will return to the available pool.
+              <strong>{isSwahili ? `Unabadilisha mada kwa namba ya kumbukumbu ${held.ref}.` : `Changing title using reference ${held.ref}.`}</strong>{' '}
+              {isSwahili ? 'Mada ya sasa:' : 'Current title:'}{' '}
+              <span className="mono">{held.title?.code}</span> — {held.title?.text}.{' '}
+              {isSwahili
+                ? 'Chagua mada iliyo wazi hapa chini kuchukua nafasi yake; mada yako ya awali itaachiwa wazi kwa wanafunzi wengine.'
+                : 'Choose an available title below to replace it; your old title will return to the available pool.'}
               <div style={{ marginTop: 10 }}>
                 <Btn
                   variant="outline"
                   size="sm"
                   onClick={() => navigate(`/reference?ref=${encodeURIComponent(held.ref)}`)}
                 >
-                  Back to confirmation
+                  {isSwahili ? 'Rudi kwenye uthibitisho' : 'Back to confirmation'}
                 </Btn>
               </div>
             </div>
@@ -203,8 +214,10 @@ export default function Catalogue({ session, onResetSession }) {
         ) : held ? (
           <Notice tone="warn" icon={IconLock}>
             <div style={{ flex: 1 }}>
-              <strong>You currently hold {held.ref}.</strong> One student holds one active title at
-              a time. Want to switch to another available title or edit your details?
+              <strong>{isSwahili ? `Kwa sasa unamiliki mada ${held.ref}.` : `You currently hold ${held.ref}.`}</strong>{' '}
+              {isSwahili
+                ? 'Mwanafunzi mmoja anaruhusiwa kuwa na mada moja inayofanya kazi. Unataka kubadilisha mada nyingine au kurekebisha taarifa zako?'
+                : 'One student holds one active title at a time. Want to switch to another available title or edit your details?'}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
                 <Btn
                   variant="gold"
@@ -212,14 +225,14 @@ export default function Catalogue({ session, onResetSession }) {
                   icon={IconRefresh}
                   onClick={() => navigate(`/catalogue?editRef=${encodeURIComponent(held.ref)}`)}
                 >
-                  Change title with {held.ref}
+                  {isSwahili ? `Badilisha mada na ${held.ref}` : `Change title with ${held.ref}`}
                 </Btn>
                 <Btn
                   variant="outline"
                   size="sm"
                   onClick={() => navigate(`/reference?ref=${encodeURIComponent(held.ref)}`)}
                 >
-                  View / Edit details
+                  {isSwahili ? 'Tazama / Rekebisha taarifa' : 'View / Edit details'}
                 </Btn>
               </div>
             </div>
@@ -228,9 +241,9 @@ export default function Catalogue({ session, onResetSession }) {
 
         {error && (
           <Notice tone="error" icon={IconAlert}>
-            <strong>Could not refresh the catalogue.</strong> {error}{' '}
+            <strong>{isSwahili ? 'Haikuweza kusasisha orodha ya mada.' : 'Could not refresh the catalogue.'}</strong> {error}{' '}
             <button type="button" className="text-btn" onClick={load}>
-              Try again
+              {isSwahili ? 'Jaribu tena' : 'Try again'}
             </button>
           </Notice>
         )}
@@ -266,13 +279,13 @@ export default function Catalogue({ session, onResetSession }) {
                   disabled={loading}
                   aria-label="Refresh catalogue"
                 >
-                  Refresh
+                  {t('cat_refresh', 'Sasisha')}
                 </Btn>
               </div>
 
               <div className="cat-toolbar-filters">
                 <span className="cat-filter-label">
-                  <IconFilter size={15} /> Filters
+                  <IconFilter size={15} /> {t('cat_filter_label', 'Vichujio')}
                 </span>
                 <select
                   className="select cat-select"
@@ -283,9 +296,9 @@ export default function Catalogue({ session, onResetSession }) {
                   }}
                   aria-label="Filter by availability"
                 >
-                  <option value="all">All availability</option>
-                  <option value="available">Available only</option>
-                  <option value="unavailable">Unavailable only</option>
+                  <option value="all">{t('cat_filter_all_avail', 'Hali zote')}</option>
+                  <option value="available">{t('cat_filter_avail_only', 'Zinazopatikana tu')}</option>
+                  <option value="unavailable">{t('cat_filter_unavail_only', 'Zilizochukuliwa tu')}</option>
                 </select>
                 <select
                   className="select cat-select"
@@ -296,28 +309,28 @@ export default function Catalogue({ session, onResetSession }) {
                   }}
                   aria-label="Sort titles"
                 >
-                  <option value="az">Sort: A – Z</option>
-                  <option value="za">Sort: Z – A</option>
-                  <option value="new">Newest first</option>
-                  <option value="old">Oldest first</option>
+                  <option value="az">{t('cat_sort_az', 'Panga: A – Z')}</option>
+                  <option value="za">{t('cat_sort_za', 'Panga: Z – A')}</option>
+                  <option value="new">{t('cat_sort_new', 'Mpya kwanza')}</option>
+                  <option value="old">{t('cat_sort_old', 'Za zamani kwanza')}</option>
                 </select>
                 {(q || status !== 'all' || sort !== 'az') && (
                   <Btn variant="ghost" size="sm" icon={IconX} onClick={resetFilters}>
-                    Reset
+                    {t('cat_reset', 'Weka upya')}
                   </Btn>
                 )}
                 <span className="cat-result-count mono">
-                  {data ? `${data.total.toLocaleString('en-GB')} records` : 'Loading…'}
+                  {data ? `${data.total.toLocaleString('en-GB')} ${t('cat_records', 'mada')}` : (isSwahili ? 'Inapakia…' : 'Loading…')}
                 </span>
               </div>
             </div>
 
             {/* --------------------------------------------------- title list */}
             <div className="cat-table-head" aria-hidden="true">
-              <span>Record</span>
-              <span>Approved title</span>
-              <span>Status</span>
-              <span>Action</span>
+              <span>{t('cat_record', 'Rekodi')}</span>
+              <span>{t('cat_title_col', 'Mada Iliyoidhinishwa')}</span>
+              <span>{t('cat_status_col', 'Hali')}</span>
+              <span>{t('cat_action_col', 'Hatua')}</span>
             </div>
 
             <div className={cls('list cat-list', refreshing && 'is-refreshing')}>
@@ -326,15 +339,19 @@ export default function Catalogue({ session, onResetSession }) {
               ) : !data || data.total === 0 ? (
                 <Empty
                   icon={IconFileText}
-                  title={q ? 'No titles match your search' : 'No titles in this view'}
+                  title={
+                    q
+                      ? (isSwahili ? 'Hakuna mada zinazolingana na utafutaji' : 'No titles match your search')
+                      : (isSwahili ? 'Hakuna mada katika mwonekano huu' : 'No titles in this view')
+                  }
                   text={
                     q
-                      ? `Nothing found for “${q}”. Try a shorter keyword or clear the filters.`
-                      : 'Adjust the availability filter to see more of the catalogue.'
+                      ? (isSwahili ? `Hakuna kilichopatikana kwa “${q}”. Jaribu neno fupi zaidi au ondoa vichujio.` : `Nothing found for “${q}”. Try a shorter keyword or clear the filters.`)
+                      : (isSwahili ? 'Badilisha vichujio vya upatikanaji ili kuona orodha zaidi ya mada.' : 'Adjust the availability filter to see more of the catalogue.')
                   }
                   action={
                     <Btn variant="outline" size="sm" icon={IconX} onClick={resetFilters}>
-                      Clear search &amp; filters
+                      {isSwahili ? 'Ondoa vichujio na utafutaji' : 'Clear search & filters'}
                     </Btn>
                   }
                 />
@@ -375,19 +392,19 @@ export default function Catalogue({ session, onResetSession }) {
                             )
                           }
                         >
-                          {isEditMode ? 'Select as new title' : 'Review & select'}
+                          {isEditMode ? t('cat_btn_select_new', 'Chagua kama Mada Mpya') : t('cat_btn_select', 'Kagua na Chagua')}
                         </Btn>
                       ) : held && held.titleId === title.id ? (
                         <span className="cat-row-note">
-                          <IconCheck size={14} /> Your current title
+                          <IconCheck size={14} /> {t('cat_current_title', 'Mada yako ya sasa')}
                         </span>
                       ) : title.available && held ? (
                         <span className="cat-row-note">
-                          <IconLock size={14} /> Use {held.ref} to switch
+                          <IconLock size={14} /> {isSwahili ? `Tumia ${held.ref} kubadilisha` : `Use ${held.ref} to switch`}
                         </span>
                       ) : (
                         <span className="cat-row-note">
-                          <IconCheck size={14} /> Taken
+                          <IconCheck size={14} /> {t('cat_taken', 'Imechukuliwa')}
                         </span>
                       )}
                     </div>
@@ -398,24 +415,21 @@ export default function Catalogue({ session, onResetSession }) {
 
             {data && data.total > 0 && (
               <>
-                <Pager
-                  page={data.page}
-                  totalPages={data.totalPages}
-                  onPage={setPage}
-                  from={data.from}
-                  to={data.to}
-                  total={data.total}
-                />
-                <div className="table-note cat-table-note">
-                  <span>
-                    Availability is confirmed by the portal each time this list loads — a title can
-                    still be taken while you read this page.
-                  </span>
-                  <div className="page-size">
-                    <label htmlFor="psize">Rows per page</label>
+                <div className="cat-foot">
+                  <Pager
+                    page={page}
+                    total={data.total}
+                    pageSize={pageSize}
+                    onPageChange={(next) => {
+                      setPage(next);
+                      window.scrollTo({ top: 320, behavior: 'smooth' });
+                    }}
+                  />
+
+                  <div className="cat-pagesize">
+                    <span className="muted small">{t('cat_per_page', 'Mada kwa ukurasa:')}</span>
                     <select
-                      id="psize"
-                      className="select"
+                      className="select select-sm cat-pagesize-select"
                       value={pageSize}
                       onChange={(e) => {
                         setPageSize(Number(e.target.value));
@@ -437,16 +451,16 @@ export default function Catalogue({ session, onResetSession }) {
           {/* --------------------------------------------------- side panel */}
           <aside className="cat-aside" aria-label="Catalogue guidance">
             <section className="cat-aside-card">
-              <span className="eyebrow">Status key</span>
-              <h3>Read the record, not just the colour</h3>
+              <span className="eyebrow">{t('cat_status_key', 'Ufafanuzi wa Hali')}</span>
+              <h3>{t('cat_status_key_sub', 'Soma maandishi, usitegemee rangi pekee')}</h3>
               <ul className="cat-legend-list">
                 <li>
                   <span className="legend-mark legend-available">
                     <IconCheck size={13} />
                   </span>
                   <div>
-                    <strong>Available</strong>
-                    <p>You may review and select this title.</p>
+                    <strong>{t('cat_badge_avail', 'Inapatikana')}</strong>
+                    <p>{t('cat_avail_text', 'Unaweza kuikagua na kuichagua mada hii.')}</p>
                   </div>
                 </li>
                 <li>
@@ -454,14 +468,14 @@ export default function Catalogue({ session, onResetSession }) {
                     <IconLock size={13} />
                   </span>
                   <div>
-                    <strong>Unavailable</strong>
-                    <p>Already reserved by another student.</p>
+                    <strong>{t('cat_badge_taken', 'Imechukuliwa')}</strong>
+                    <p>{t('cat_unavail_text', 'Tayari imeshachukuliwa na mwanafunzi mwingine.')}</p>
                   </div>
                 </li>
               </ul>
               <div className="cat-server-note">
                 <IconShield size={15} />
-                <span>Status is decided by the portal, never by this screen.</span>
+                <span>{t('cat_server_note', 'Hali inaamuliwa na mfumo kwenye seva, kamwe siyo skrini hii.')}</span>
               </div>
             </section>
 
@@ -469,13 +483,15 @@ export default function Catalogue({ session, onResetSession }) {
               <span className="cat-aside-icon">
                 <IconShield size={18} />
               </span>
-              <h3>One title. One student.</h3>
+              <h3>{t('cat_one_title_heading', 'Mada moja. Mwanafunzi mmoja.')}</h3>
               <p>
-                Your reservation is created only after you confirm the next step. After that, only
-                an authorised administrator can release it.
+                {t(
+                  'cat_one_title_text',
+                  'Mada yako inahifadhiwa rasmi pale tu utakapothibitisha hatua inayofuata. Baada ya hapo, namba yako ya kumbukumbu inakupa umiliki kamili.'
+                )}
               </p>
               <Link to="/help" className="btn btn-outline btn-sm">
-                How selection works <IconArrowRight size={15} />
+                {t('cat_how_it_works', 'Jinsi mfumo unavyofanya kazi')} <IconArrowRight size={15} />
               </Link>
             </section>
           </aside>

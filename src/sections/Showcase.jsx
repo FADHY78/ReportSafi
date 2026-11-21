@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { getCatalogue, getProgrammes } from '../lib/api';
 import { StatusTag } from '../ui/primitives';
 import { IconSearch, IconFilter, IconCheck, IconShield } from '../ui/Icons';
+import { useLanguage } from '../lib/i18n';
 
 /**
  * Live preview of the catalogue. The rows, codes and availability flags are
  * real records read from Supabase — nothing here is mock data.
  */
 export default function Showcase() {
+  const { t } = useLanguage();
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(null);
   const [programme, setProgramme] = useState(null);
@@ -36,14 +38,10 @@ export default function Showcase() {
       <div className="container">
         <div className="showcase">
           <div className="showcase-copy">
-            <span className="eyebrow">The catalogue</span>
+            <span className="eyebrow">{t('showcase_eyebrow', 'Orodha ya Mada')}</span>
             <div className="section-head" style={{ marginBottom: 20 }}>
-              <h2>See what is free before you commit</h2>
-              <p>
-                Search by keyword, narrow to your programme, and read availability at a glance.
-                Green says <strong>Available</strong>, red says <strong>Reserved</strong> — the
-                word is always there, even in black and white.
-              </p>
+              <h2>{t('showcase_heading', 'Ona mada zilizo wazi kabla ya kuchagua')}</h2>
+              <p>{t('showcase_lead', 'Tafuta kwa neno kuu, chagua fani yako, na uone upatikanaji mara moja. Kijani inamaanisha Inapatikana, nyekundu inamaanisha Imechukuliwa — maneno yanaonekana wazi wakati wote.')}</p>
             </div>
 
             <ul className="showcase-points">
@@ -51,19 +49,19 @@ export default function Showcase() {
                 <span className="tick">
                   <IconCheck size={13} strokeWidth={3} />
                 </span>
-                Pagination at 20, 50 or 100 rows for catalogues of 1,000+ titles
+                {t('showcase_p1', 'Mpangilio wa kurasa kwa mistari 20, 50 au 100 kwa orodha ya mada 1,000+')}
               </li>
               <li>
                 <span className="tick">
                   <IconCheck size={13} strokeWidth={3} />
                 </span>
-                Keyword search across title wording and category
+                {t('showcase_p2', 'Utafutaji wa haraka kwa jina la mada na fani')}
               </li>
               <li>
                 <span className="tick">
                   <IconCheck size={13} strokeWidth={3} />
                 </span>
-                Availability re-verified by the portal the moment you confirm
+                {t('showcase_p3', 'Upatikanaji unathibitishwa upya na mfumo punde unapobonyeza kuthibitisha')}
               </li>
             </ul>
           </div>
@@ -79,7 +77,7 @@ export default function Showcase() {
             <div className="app-toolbar">
               <span className="app-search">
                 <IconSearch size={15} />
-                {programme ? `${programme.code} · case study…` : 'Loading catalogue…'}
+                {programme ? `${programme.code} · case study…` : t('showcase_loading', 'Mada zilizopo zinapakuliwa…')}
               </span>
               <span className="app-filter">
                 <IconFilter size={14} /> {programme?.code || 'Programme'}
@@ -96,16 +94,18 @@ export default function Showcase() {
                   </div>
                 ))
               ) : (
-                <div className="app-row"><span className="app-row-title">Loading live titles…</span></div>
+                <div className="app-row">
+                  <span className="app-row-title">{t('showcase_loading', 'Mada zilizopo zinapakuliwa…')}</span>
+                </div>
               )}
             </div>
 
             <div className="app-foot">
               <span className="mono">
-                {rows.length} of {total == null ? '—' : total.toLocaleString('en-GB')} titles
+                {rows.length} / {total == null ? '—' : total.toLocaleString('en-GB')} {t('cat_records', 'mada')}
               </span>
               <span className="app-confirm">
-                <IconShield size={14} /> Confirm selection
+                <IconShield size={14} /> {t('confirm_btn', 'Thibitisha Uchaguzi')}
               </span>
             </div>
           </div>

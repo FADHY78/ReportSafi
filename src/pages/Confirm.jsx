@@ -37,7 +37,7 @@ export default function Confirm({ session, onSyncSession }) {
     let alive = true;
     if (!titleId) {
       setLoading(false);
-      return () => {};
+      return () => { };
     }
     Promise.all([
       getTitleById(titleId),
@@ -285,8 +285,8 @@ export default function Confirm({ session, onSyncSession }) {
                   {busy
                     ? 'Inathibitisha kwenye mfumo…'
                     : isEditMode
-                    ? 'Thibitisha mabadiliko ya mada'
-                    : 'Thibitisha na hifadhi mada'}
+                      ? 'Thibitisha mabadiliko ya mada'
+                      : 'Thibitisha na hifadhi mada'}
                 </Btn>
                 <Btn variant="outline" size="lg" icon={IconArrowLeft} onClick={() => navigate(backTarget)}>
                   Rudi kwenye orodha ya mada
